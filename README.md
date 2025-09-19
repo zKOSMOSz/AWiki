@@ -1,6 +1,6 @@
-# StoryMC Wiki Viewer
+# AWiki
 
-This project is a web application designed to display the documentation and guides for the StoryMC Minecraft server. It's built using React and TypeScript, featuring a clean, modern interface inspired by documentation sites like Nextra and GitBook.
+This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.
 
 ## Project Structure
 
