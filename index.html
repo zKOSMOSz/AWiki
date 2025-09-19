@@ -16,13 +16,6 @@
         document.documentElement.classList.remove('dark');
       }
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // Configure TailwindCSS to use class-based dark mode
-      tailwind.config = {
-        darkMode: 'class',
-      }
-    </script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -33,7 +26,9 @@
   "imports": {
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1"
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.3",
+    "vite": "https://aistudiocdn.com/vite@^7.1.6"
   }
 }
 </script>
@@ -41,6 +36,7 @@
 </head>
   <body class="bg-white dark:bg-zinc-900 text-gray-600 dark:text-gray-300 transition-colors duration-200">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+    <script type="module" src="/src/index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>
