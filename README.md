@@ -1,4 +1,4 @@
-# AWiki Viewer
+# AWiki
 
 This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.
 
