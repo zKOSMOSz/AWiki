@@ -106,12 +106,6 @@ export const ComputerDesktopIcon: React.FC<{className?: string}> = (props) => (
     </svg>
 );
 
-export const GitBookIcon: React.FC<{className?: string}> = (props) => (
-    <svg className={props.className} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M21.503 2.152a2.33 2.33 0 0 0-2.33 1.253L12 17.067 4.827 3.405A2.33 2.33 0 0 0 2.5 2.152a2.33 2.33 0 0 0-.002 4.66l7.175 13.666a2.33 2.33 0 0 0 4.654 0L21.505 6.812a2.33 2.33 0 0 0-.002-4.66Z"></path>
-    </svg>
-);
-
 export const ClockIcon: React.FC<{className?: string}> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={props.className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -42,6 +42,7 @@ const NavItem: React.FC<{ item: WikiTreeItem; activePageId: string | null; onSel
         <button
           onClick={handleItemClick}
           className={`${commonClasses} justify-between ${isActive && item.path ? activeClasses : inactiveClasses}`}
+          disabled={!hasContent}
         >
           <div className="flex items-center space-x-2.5">
             {iconElement}
