@@ -79,6 +79,9 @@ type Block =
   | { type: 'h1'; text: string }
   | { type: 'h2'; text: string }
   | { type: 'h3'; text: string }
+  | { type: 'h4'; text: string }
+  | { type: 'h5'; text: string }
+  | { type: 'h6'; text: string }
   | { type: 'p'; text: string }
   | { type: 'code'; lang: string; content: string }
   | { type: 'ul'; items: string[] }
@@ -104,6 +107,9 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
         }
 
         // Headers
+        if (trimmedLine.startsWith('###### ')) { blocks.push({ type: 'h6', text: trimmedLine.substring(7) }); i++; continue; }
+        if (trimmedLine.startsWith('##### ')) { blocks.push({ type: 'h5', text: trimmedLine.substring(6) }); i++; continue; }
+        if (trimmedLine.startsWith('#### ')) { blocks.push({ type: 'h4', text: trimmedLine.substring(5) }); i++; continue; }
         if (trimmedLine.startsWith('### ')) { blocks.push({ type: 'h3', text: trimmedLine.substring(4) }); i++; continue; }
         if (trimmedLine.startsWith('## ')) { blocks.push({ type: 'h2', text: trimmedLine.substring(3) }); i++; continue; }
         if (trimmedLine.startsWith('# ')) { blocks.push({ type: 'h1', text: trimmedLine.substring(2) }); i++; continue; }
@@ -156,12 +162,12 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
         }
 
         // Ordered List
-        if (/^\d+\.\s/.test(trimmedLine)) {
+        if (/^\d+\.\s+/.test(trimmedLine)) {
             const listItems: string[] = [];
              while (i < lines.length) {
                 const currentTrimmed = lines[i].trim();
-                if (/^\d+\.\s/.test(currentTrimmed)) {
-                    listItems.push(currentTrimmed.replace(/^\d+\.\s/, ''));
+                if (/^\d+\.\s+/.test(currentTrimmed)) {
+                    listItems.push(currentTrimmed.replace(/^\d+\.\s+/, ''));
                     i++;
                 } else {
                     break;
@@ -203,11 +209,11 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
         while (i < lines.length && lines[i].trim() !== '') {
             const nextTrimmed = lines[i].trim();
             const isNewBlock = 
-                nextTrimmed.startsWith('#') ||
-                nextTrimmed.startsWith('>') ||
+                /^#{1,6}\s/.test(nextTrimmed) ||
+                nextTrimmed.startsWith('> ') ||
                 nextTrimmed.startsWith('* ') ||
                 nextTrimmed.startsWith('- ') ||
-                /^\d+\.\s/.test(nextTrimmed) ||
+                /^\d+\.\s+/.test(nextTrimmed) ||
                 nextTrimmed.startsWith('```') ||
                 nextTrimmed.startsWith('[TABLE]') ||
                 nextTrimmed.startsWith('![') ||
@@ -221,6 +227,15 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
 
         if (pLines.length > 0) {
             blocks.push({ type: 'p', text: pLines.join('\n') });
+        } else {
+             // If we are here, it means the line was not empty but didn't form a paragraph,
+             // and didn't match any block. This can happen with malformed markdown that
+             // looks like a block but isn't (e.g., `#Header` without space).
+             // To prevent an infinite loop, we treat it as a plain paragraph and advance `i`.
+             if (i < lines.length && lines[i].trim() !== '') {
+                blocks.push({ type: 'p', text: lines[i] });
+                i++;
+             }
         }
     }
     return blocks;
@@ -255,6 +270,12 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                     return <h2 key={index} className="text-2xl font-bold text-zinc-900 dark:text-white border-b border-gray-200 dark:border-zinc-800 pb-2 mt-10 mb-4">{applyInlineFormatting(block.text)}</h2>;
                 case 'h3':
                     return <h3 key={index} className="text-xl font-semibold text-zinc-900 dark:text-white mt-8 mb-3">{applyInlineFormatting(block.text)}</h3>;
+                case 'h4':
+                    return <h4 key={index} className="text-lg font-semibold text-zinc-900 dark:text-white mt-6 mb-2">{applyInlineFormatting(block.text)}</h4>;
+                case 'h5':
+                    return <h5 key={index} className="text-base font-semibold text-zinc-900 dark:text-white mt-5 mb-1">{applyInlineFormatting(block.text)}</h5>;
+                case 'h6':
+                    return <h6 key={index} className="text-sm font-semibold text-zinc-900 dark:text-white mt-4 mb-1">{applyInlineFormatting(block.text)}</h6>;
                 case 'hr':
                     return <hr key={index} className="my-8 border-gray-200 dark:border-zinc-800" />;
                 case 'p':
