@@ -70,7 +70,7 @@ export const XIcon: React.FC<{className?: string}> = (props) => (
 
 // NEW ICONS
 export const StoryMCLogoIcon: React.FC<{className?: string}> = (props) => (
-    <img src="${import.meta.env.BASE_URL}logo.png" alt="StoryMC Logo" className={props.className} />
+    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AWiki Logo" className={props.className} />
 );
 
 export const FolderIcon: React.FC<{className?: string}> = (props) => (
