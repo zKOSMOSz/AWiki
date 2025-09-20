@@ -4,7 +4,7 @@
     "id": "obschaya-informaciya",
     "title": "Общая информация",
     "iconName": "📁",
-    "path": "./wiki/obschaya-informaciya.md"
+    "path": "obschaya-informaciya.md"
   },
   {
     "type": "page",
