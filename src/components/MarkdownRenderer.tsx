@@ -24,7 +24,8 @@ const applyInlineFormatting = (text: string): React.ReactNode => {
             return <del key={index}>{part.substring(2, part.length - 2)}</del>;
         }
         if (part.startsWith('`') && part.endsWith('`')) {
-            return <code key={index} className="bg-gray-200 dark:bg-zinc-700 rounded px-1.5 py-0.5 text-sm font-mono text-red-500 dark:text-red-400">{part.substring(1, part.length - 1)}</code>;
+            const content = part.replace(/^`+|`+$/g, '');
+            return <code key={index} className="bg-gray-200 dark:bg-zinc-700 rounded px-1.5 py-px text-sm font-mono text-red-500 dark:text-red-400">{content}</code>;
         }
         if (part.startsWith('![')) {
             const altMatch = part.match(/!\[(.*?)\]/);
