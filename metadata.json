@@ -1,5 +1,5 @@
 {
-  "name": "StoryMC Wiki Viewer",
-  "description": "A web application to browse the StoryMC Minecraft server documentation, built with a clean, Nextra-inspired interface. It allows users to easily navigate through different sections like server rules, getting started guides, and gameplay mechanics.",
+  "name": "AWiki",
+  "description": "This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.",
   "requestFramePermissions": []
 }
