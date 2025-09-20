@@ -139,7 +139,7 @@ const App: React.FC = () => {
     if (path) {
         setIsPageLoading(true);
         setActiveContent('');
-        fetch(`/wiki/${path}`)
+        fetch(`${import.meta.env.BASE_URL}wiki/${path}`)
             .then(response => response.ok ? response.text() : Promise.reject(`HTTP error! status: ${response.status}`))
             .then(text => setActiveContent(text))
             .catch(error => {
