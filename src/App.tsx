@@ -78,7 +78,7 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-    fetch('/wiki-manifest.json')
+    fetch(`${import.meta.env.BASE_URL}wiki-manifest.json`)
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
