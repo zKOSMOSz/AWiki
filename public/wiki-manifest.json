@@ -18,7 +18,7 @@
     "id": "modify",
     "title": "Modify",
     "iconName": "🍷",
-    "path": "modify/index.md",
+    "path": "modify/modify.md",
     "children": [
       {
         "type": "page",
