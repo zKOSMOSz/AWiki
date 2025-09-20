@@ -25,7 +25,7 @@ const applyInlineFormatting = (text: string): React.ReactNode => {
         }
         if (part.startsWith('`') && part.endsWith('`')) {
             const content = part.replace(/^`+|`+$/g, '');
-            return <code key={index} className="bg-gray-200 dark:bg-zinc-700 rounded px-1.5 py-px text-sm font-mono text-red-500 dark:text-red-400">{content}</code>;
+            return <code key={index} className="bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded px-1.5 py-px text-sm font-mono text-red-500 dark:text-red-400">{content}</code>;
         }
         if (part.startsWith('![')) {
             const altMatch = part.match(/!\[(.*?)\]/);
@@ -296,7 +296,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                     );
                 case 'code':
                     return (
-                        <pre key={index} className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg my-4 overflow-x-auto text-sm">
+                        <pre key={index} className="bg-zinc-100 dark:bg-zinc-950 border border-transparent dark:border-zinc-800 p-4 rounded-lg my-4 overflow-x-auto text-sm">
                             <code className={block.lang ? `language-${block.lang}` : ''}>
                                 {block.content}
                             </code>
