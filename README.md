@@ -2,6 +2,8 @@
 
 This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.
 
+<img width="820" height="980" alt="image" src="https://github.com/user-attachments/assets/06294ed0-4f63-42e2-b6c4-f619e096bccf" />
+
 ## Project Structure
 
 -   `index.html`: The main HTML file and entry point for the application.

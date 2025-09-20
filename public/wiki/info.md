@@ -2,7 +2,7 @@
 
 This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.
 
-![AWiki](https://github.com/user-attachments/assets/c6fdbf73-30bd-4e1d-9463-a2087cbef8e3)
+![AWiki](https://github.com/user-attachments/assets/06294ed0-4f63-42e2-b6c4-f619e096bccf)
 
 ## Project Structure
 
