@@ -317,9 +317,9 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                     );
                 case 'code':
                     return (
-                        <div key={index} className="relative my-4">
-                            <pre className="bg-zinc-100 dark:bg-zinc-950 border border-transparent dark:border-zinc-800 p-4 pt-8 rounded-lg overflow-x-auto text-sm">
-                                <code className={block.lang ? `language-${block.lang}` : ''}>
+                        <div key={index} className="relative my-4 font-mono text-sm">
+                            <pre className="bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 p-4 pt-8 rounded-lg overflow-x-auto">
+                                <code className={`${block.lang ? `language-${block.lang}` : ''} text-red-500 dark:text-red-400`}>
                                     {block.content}
                                 </code>
                             </pre>
