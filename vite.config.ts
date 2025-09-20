@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/AWiki/',  // Замените на имя вашего репозитория, если не AWiki
+  base: process.env.VITE_BASE_PATH || '/',  // По умолчанию '/', но можно переопределить env-переменной
 });
