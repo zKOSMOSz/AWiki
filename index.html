@@ -8,17 +8,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PrismJS Themes for Syntax Highlighting -->
+    <link rel="stylesheet" id="prism-light-theme" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
+    <link rel="stylesheet" id="prism-dark-theme" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+
     <script>
       // Apply theme from localStorage before page load to prevent FOUC
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      const theme = localStorage.getItem('theme') || 'system';
+      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (isDark) {
         document.documentElement.classList.add('dark');
+        document.getElementById('prism-light-theme').disabled = true;
+        document.getElementById('prism-dark-theme').disabled = false;
       } else {
         document.documentElement.classList.remove('dark');
+        document.getElementById('prism-light-theme').disabled = false;
+        document.getElementById('prism-dark-theme').disabled = true;
       }
     </script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
+      }
+      /* Override Prism's <pre> background to use the one from MarkdownRenderer.tsx */
+      pre[class*="language-"] {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
     </style>
 <script type="importmap">
@@ -32,11 +49,13 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-white dark:bg-zinc-900 text-gray-600 dark:text-gray-300 transition-colors duration-200">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    
+    <!-- PrismJS for Syntax Highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  </body>
 </html>

@@ -55,6 +55,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const root = window.document.documentElement;
+    const lightThemeSheet = document.getElementById('prism-light-theme') as HTMLLinkElement | null;
+    const darkThemeSheet = document.getElementById('prism-dark-theme') as HTMLLinkElement | null;
+
     const isDark =
       theme === 'dark' ||
       (theme === 'system' &&
@@ -62,6 +65,11 @@ const App: React.FC = () => {
     
     root.classList.toggle('dark', isDark);
     localStorage.setItem('theme', theme);
+
+    if (lightThemeSheet && darkThemeSheet) {
+      lightThemeSheet.disabled = isDark;
+      darkThemeSheet.disabled = !isDark;
+    }    
   }, [theme]);
   
   // Listener for system theme changes
@@ -71,6 +79,12 @@ const App: React.FC = () => {
       if (theme === 'system') {
         const isDark = mediaQuery.matches;
         document.documentElement.classList.toggle('dark', isDark);
+        const lightThemeSheet = document.getElementById('prism-light-theme') as HTMLLinkElement | null;
+        const darkThemeSheet = document.getElementById('prism-dark-theme') as HTMLLinkElement | null;
+        if (lightThemeSheet && darkThemeSheet) {
+          lightThemeSheet.disabled = isDark;
+          darkThemeSheet.disabled = !isDark;
+        }        
       }
     };
     mediaQuery.addEventListener('change', handleChange);

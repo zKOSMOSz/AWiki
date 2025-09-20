@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { InfoIcon, WarningIcon } from './icons';
+
+// Allow PrismJS to be used from the global scope (loaded via CDN)
+declare const Prism: any;
 
 // --- INLINE FORMATTING ---
 
@@ -92,42 +95,43 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
 
     while (i < lines.length) {
         const line = lines[i];
+        const trimmedLine = line.trim();
 
-        if (line.trim() === '') {
+        if (trimmedLine === '') {
             i++;
             continue;
         }
 
         // Headers
-        if (line.startsWith('### ')) { blocks.push({ type: 'h3', text: line.substring(4) }); i++; continue; }
-        if (line.startsWith('## ')) { blocks.push({ type: 'h2', text: line.substring(3) }); i++; continue; }
-        if (line.startsWith('# ')) { blocks.push({ type: 'h1', text: line.substring(2) }); i++; continue; }
+        if (trimmedLine.startsWith('### ')) { blocks.push({ type: 'h3', text: trimmedLine.substring(4) }); i++; continue; }
+        if (trimmedLine.startsWith('## ')) { blocks.push({ type: 'h2', text: trimmedLine.substring(3) }); i++; continue; }
+        if (trimmedLine.startsWith('# ')) { blocks.push({ type: 'h1', text: trimmedLine.substring(2) }); i++; continue; }
         
         // Horizontal Rule
-        if (line.trim() === '---') { blocks.push({ type: 'hr' }); i++; continue; }
+        if (trimmedLine === '---') { blocks.push({ type: 'hr' }); i++; continue; }
 
         // Callouts
-        if (line.startsWith('> i ')) { blocks.push({ type: 'callout', variant: 'info', text: line.substring(4) }); i++; continue; }
-        if (line.startsWith('> ! ')) { blocks.push({ type: 'callout', variant: 'warning', text: line.substring(4) }); i++; continue; }
+        if (trimmedLine.startsWith('> i ')) { blocks.push({ type: 'callout', variant: 'info', text: trimmedLine.substring(4) }); i++; continue; }
+        if (trimmedLine.startsWith('> ! ')) { blocks.push({ type: 'callout', variant: 'warning', text: trimmedLine.substring(4) }); i++; continue; }
         
         // Code blocks
-        if (line.startsWith('```')) {
-            const lang = line.substring(3).trim();
+        if (trimmedLine.startsWith('```')) {
+            const lang = trimmedLine.substring(3).trim();
             const codeLines: string[] = [];
             i++;
-            while (i < lines.length && !lines[i].startsWith('```')) {
+            while (i < lines.length && !lines[i].trim().startsWith('```')) {
                 codeLines.push(lines[i]);
                 i++;
             }
-            blocks.push({ type: 'code', lang, content: codeLines.join('\n') });
+            blocks.push({ type: 'code', lang, content: codeLines.join('\n').trim() });
             i++; continue;
         }
 
         // Blockquotes
-        if (line.startsWith('> ')) {
+        if (trimmedLine.startsWith('> ')) {
             const bqLines: string[] = [];
-            while (i < lines.length && lines[i].startsWith('> ')) {
-                bqLines.push(lines[i].substring(2));
+            while (i < lines.length && lines[i].trim().startsWith('>')) {
+                bqLines.push(lines[i].trim().substring(1).trim());
                 i++;
             }
             blocks.push({ type: 'blockquote', lines: bqLines });
@@ -135,33 +139,45 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
         }
         
         // Unordered List
-        if (line.startsWith('* ') || line.startsWith('- ')) {
+        if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
             const listItems: string[] = [];
-            while (i < lines.length && (lines[i].startsWith('* ') || lines[i].startsWith('- '))) {
-                listItems.push(lines[i].substring(2));
-                i++;
+            while (i < lines.length) {
+                const currentTrimmed = lines[i].trim();
+                if (currentTrimmed.startsWith('* ') || currentTrimmed.startsWith('- ')) {
+                    listItems.push(currentTrimmed.substring(2));
+                    i++;
+                } else {
+                    break;
+                }
             }
             blocks.push({ type: 'ul', items: listItems });
             continue;
         }
 
         // Ordered List
-        if (/^\d+\.\s/.test(line)) {
+        if (/^\d+\.\s/.test(trimmedLine)) {
             const listItems: string[] = [];
-            while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
-                listItems.push(lines[i].replace(/^\d+\.\s/, ''));
-                i++;
+             while (i < lines.length) {
+                const currentTrimmed = lines[i].trim();
+                if (/^\d+\.\s/.test(currentTrimmed)) {
+                    listItems.push(currentTrimmed.replace(/^\d+\.\s/, ''));
+                    i++;
+                } else {
+                    break;
+                }
             }
             blocks.push({ type: 'ol', items: listItems });
             continue;
         }
 
         // Custom Table
-        if (line.startsWith('[TABLE]')) {
+        if (trimmedLine.startsWith('[TABLE]')) {
             const tableRowsData: string[][] = [];
             i++;
-            while (i < lines.length && !lines[i].startsWith('[/TABLE]')) {
-                tableRowsData.push(lines[i].split(';').map(s => s.trim()));
+            while (i < lines.length && !lines[i].trim().startsWith('[/TABLE]')) {
+                if (lines[i].trim() !== '') {
+                  tableRowsData.push(lines[i].split(';').map(s => s.trim()));
+                }
                 i++;
             }
             if (tableRowsData.length > 0) {
@@ -174,7 +190,7 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
         }
 
         // Standalone Image
-        const imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)/);
+        const imgMatch = trimmedLine.match(/^!\[(.*?)\]\((.*?)\)/);
         if (imgMatch) {
              blocks.push({ type: 'image', alt: imgMatch[1], src: imgMatch[2] })
              i++;
@@ -184,26 +200,26 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
         // Paragraph (the fallback)
         const pLines: string[] = [];
         while (i < lines.length && lines[i].trim() !== '') {
-            const nextLine = lines[i];
+            const nextTrimmed = lines[i].trim();
             const isNewBlock = 
-                nextLine.startsWith('#') ||
-                nextLine.startsWith('>') ||
-                nextLine.startsWith('* ') ||
-                nextLine.startsWith('- ') ||
-                /^\d+\.\s/.test(nextLine) ||
-                nextLine.startsWith('```') ||
-                nextLine.startsWith('[TABLE]') ||
-                nextLine.startsWith('![') ||
-                nextLine.trim() === '---';
+                nextTrimmed.startsWith('#') ||
+                nextTrimmed.startsWith('>') ||
+                nextTrimmed.startsWith('* ') ||
+                nextTrimmed.startsWith('- ') ||
+                /^\d+\.\s/.test(nextTrimmed) ||
+                nextTrimmed.startsWith('```') ||
+                nextTrimmed.startsWith('[TABLE]') ||
+                nextTrimmed.startsWith('![') ||
+                nextTrimmed === '---';
             
             if (isNewBlock) break;
 
-            pLines.push(nextLine);
+            pLines.push(lines[i]);
             i++;
         }
 
         if (pLines.length > 0) {
-            blocks.push({ type: 'p', text: pLines.join(' ') });
+            blocks.push({ type: 'p', text: pLines.join('\n') });
         }
     }
     return blocks;
@@ -213,11 +229,20 @@ const parseMarkdownToBlocks = (content: string): Block[] => {
 // --- RENDERER COMPONENT ---
 
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
-    if (!content) {
-        return <div className="prose dark:prose-invert max-w-none"><p>Select a page to view its content.</p></div>;
-    }
+    const blocks = useMemo(() => {
+        if (!content) return [];
+        return parseMarkdownToBlocks(content);
+    }, [content]);
+
+    useEffect(() => {
+        if (typeof Prism !== 'undefined') {
+            Prism.highlightAll();
+        }
+    }, [blocks]);
     
-    const blocks = parseMarkdownToBlocks(content);
+    if (!content) {
+        return <div className="max-w-none"><p>Select a page to view its content.</p></div>;
+    }
 
     return (
       <div className="max-w-none text-gray-600 dark:text-gray-300">
@@ -232,7 +257,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                 case 'hr':
                     return <hr key={index} className="my-8 border-gray-200 dark:border-zinc-800" />;
                 case 'p':
-                    return <p key={index} className="my-4 leading-relaxed">{applyInlineFormatting(block.text)}</p>;
+                    return <p key={index} className="my-4 leading-relaxed whitespace-pre-line">{applyInlineFormatting(block.text)}</p>;
                 case 'image':
                     return <img key={index} src={block.src} alt={block.alt} className="my-6 rounded-lg shadow-md max-w-full" />;
                 case 'ul':
@@ -270,8 +295,10 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                     );
                 case 'code':
                     return (
-                        <pre key={index} className="bg-gray-100 dark:bg-zinc-800 p-4 rounded-lg my-4 overflow-x-auto text-sm">
-                            <code>{block.content}</code>
+                        <pre key={index} className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg my-4 overflow-x-auto text-sm">
+                            <code className={block.lang ? `language-${block.lang}` : ''}>
+                                {block.content}
+                            </code>
                         </pre>
                     );
                 case 'table':
