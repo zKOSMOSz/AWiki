@@ -70,10 +70,7 @@ export const XIcon: React.FC<{className?: string}> = (props) => (
 
 // NEW ICONS
 export const StoryMCLogoIcon: React.FC<{className?: string}> = (props) => (
-    <svg className={props.className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" rx="20" fill="#3B82F6"/>
-        <path d="M68.5 25C74.5 35.5 73.5 49.3333 63.5 56C53.5 62.6667 36 63 31.5 75" stroke="white" strokeWidth="10" strokeLinecap="round"/>
-    </svg>
+    <img src="/logo.png" alt="StoryMC Logo" className={props.className} />
 );
 
 export const FolderIcon: React.FC<{className?: string}> = (props) => (

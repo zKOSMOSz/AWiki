@@ -4,7 +4,7 @@ The wiki's content and structure are designed to be easily updated.
 
 ### 1. Create or Edit a Markdown File
 
-All page content is stored in `.md` files inside the `wiki/` directory. You can create subdirectories to keep things organized (e.g., `wiki/raznoe/towny.md`).
+All page content is stored in `.md` files inside the `wiki/` directory. You can create subdirectories to keep things organized (e.g., `wiki/modify/custom/custom.md`).
 
 -   To create a new page, add a new `.md` file in the `wiki/` directory.
 -   To edit an existing page, simply modify the corresponding `.md` file.
@@ -17,25 +17,33 @@ Open `wiki-manifest.json` and add a new JSON object to the main array or a secti
 
 #### Example: Adding a New Page
 
-To add a new page titled "Factions" under the "Разное" (Miscellaneous) section:
+To add a new page titled "Styling" under the "Modify" section:
 
-1.  **Create the file:** `wiki/raznoe/factions.md` with your content.
+1.  **Create the file:** `wiki/modify/styling.md` with your content.
 
-2.  **Update `wiki-manifest.json`:** Find the "Разное" section and add the new page object to its `children` array.
+2.  **Update `wiki-manifest.json`:** Find the "Modify" section and add the new page object to its `children` array.
 
     ```json
     {
       "type": "section",
-      "id": "raznoe",
-      "title": "Разное",
+      "id": "modify",
+      "title": "Modify",
+      "iconName": "🍷",
+      "path": "modify/modify.md",
       "children": [
-        // ... existing pages
         {
           "type": "page",
-          "id": "factions",
-          "title": "Factions",
-          "iconName": "⚔️",
-          "path": "raznoe/factions.md"
+          "id": "custom",
+          "title": "Сustom",
+          "iconName": "👤",
+          "path": "modify/custom/custom.md"
+        },
+        {
+          "type": "page",
+          "id": "styling",
+          "title": "Styling",
+          "iconName": "🎨",
+          "path": "modify/styling.md"
         }
       ]
     }
@@ -44,26 +52,33 @@ To add a new page titled "Factions" under the "Разное" (Miscellaneous) sec
 
 #### Example: Adding a New Top-Level Section
 
-To add a new section called "Economy":
+To add a new section called "Guides":
 
-1.  **Create content files:** e.g., `wiki/economy/shop.md`
+1.  **Create content files:** e.g., `wiki/guides/getting-started.md`
 
 2.  **Update `wiki-manifest.json`:** Add a new section object to the root array.
 
     ```json
     [
-      // ... existing pages and sections
+      {
+        "type": "page",
+        "id": "info",
+        "title": "Info",
+        "iconName": "📁",
+        "path": "info.md"
+      },
+      // ... other existing pages and sections
       {
         "type": "section",
-        "id": "economy",
-        "title": "Economy",
+        "id": "guides",
+        "title": "Guides",
         "children": [
           {
             "type": "page",
-            "id": "shop",
-            "title": "Server Shop",
-            "iconName": "🛒",
-            "path": "economy/shop.md"
+            "id": "getting-started",
+            "title": "Getting Started",
+            "iconName": "🚀",
+            "path": "guides/getting-started.md"
           }
         ]
       }
@@ -81,9 +96,9 @@ To use an emoji, simply place the character in the `iconName` field in `wiki-man
 ```json
 {
   "type": "page",
-  "id": "factions",
-  "title": "Factions",
-  "iconName": "⚔️",
-  "path": "raznoe/factions.md"
+  "id": "styling",
+  "title": "Styling",
+  "iconName": "🎨",
+  "path": "modify/styling.md"
 }
 ```

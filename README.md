@@ -2,12 +2,11 @@
 
 This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.
 
-<img width="700" height="762" alt="image" src="https://github.com/user-attachments/assets/c6fdbf73-30bd-4e1d-9463-a2087cbef8e3" />
-
 ## Project Structure
 
 -   `index.html`: The main HTML file and entry point for the application.
 -   `index.tsx`: Mounts the main React application to the DOM.
+-   `public/logo.png`: The site logo and favicon image file.
 -   `App.tsx`: The root React component that handles the overall layout, state management, and routing between wiki pages.
 -   `wiki-manifest.json`: A JSON file that defines the navigation structure of the sidebar. This is the single source of truth for what pages exist and how they are organized.
 -   `wiki/`: A directory containing all the wiki content as Markdown (`.md`) files.
@@ -20,7 +19,7 @@ The wiki's content and structure are designed to be easily updated.
 
 ### 1. Create or Edit a Markdown File
 
-All page content is stored in `.md` files inside the `wiki/` directory. You can create subdirectories to keep things organized (e.g., `wiki/raznoe/towny.md`).
+All page content is stored in `.md` files inside the `wiki/` directory. You can create subdirectories to keep things organized (e.g., `wiki/modify/custom/custom.md`).
 
 -   To create a new page, add a new `.md` file in the `wiki/` directory.
 -   To edit an existing page, simply modify the corresponding `.md` file.
@@ -33,25 +32,33 @@ Open `wiki-manifest.json` and add a new JSON object to the main array or a secti
 
 #### Example: Adding a New Page
 
-To add a new page titled "Factions" under the "Разное" (Miscellaneous) section:
+To add a new page titled "Styling" under the "Modify" section:
 
-1.  **Create the file:** `wiki/raznoe/factions.md` with your content.
+1.  **Create the file:** `wiki/modify/styling.md` with your content.
 
-2.  **Update `wiki-manifest.json`:** Find the "Разное" section and add the new page object to its `children` array.
+2.  **Update `wiki-manifest.json`:** Find the "Modify" section and add the new page object to its `children` array.
 
     ```json
     {
       "type": "section",
-      "id": "raznoe",
-      "title": "Разное",
+      "id": "modify",
+      "title": "Modify",
+      "iconName": "🍷",
+      "path": "modify/modify.md",
       "children": [
-        // ... existing pages
         {
           "type": "page",
-          "id": "factions",
-          "title": "Factions",
-          "iconName": "⚔️",
-          "path": "raznoe/factions.md"
+          "id": "custom",
+          "title": "Сustom",
+          "iconName": "👤",
+          "path": "modify/custom/custom.md"
+        },
+        {
+          "type": "page",
+          "id": "styling",
+          "title": "Styling",
+          "iconName": "🎨",
+          "path": "modify/styling.md"
         }
       ]
     }
@@ -60,26 +67,33 @@ To add a new page titled "Factions" under the "Разное" (Miscellaneous) sec
 
 #### Example: Adding a New Top-Level Section
 
-To add a new section called "Economy":
+To add a new section called "Guides":
 
-1.  **Create content files:** e.g., `wiki/economy/shop.md`
+1.  **Create content files:** e.g., `wiki/guides/getting-started.md`
 
 2.  **Update `wiki-manifest.json`:** Add a new section object to the root array.
 
     ```json
     [
-      // ... existing pages and sections
+      {
+        "type": "page",
+        "id": "info",
+        "title": "Info",
+        "iconName": "📁",
+        "path": "info.md"
+      },
+      // ... other existing pages and sections
       {
         "type": "section",
-        "id": "economy",
-        "title": "Economy",
+        "id": "guides",
+        "title": "Guides",
         "children": [
           {
             "type": "page",
-            "id": "shop",
-            "title": "Server Shop",
-            "iconName": "🛒",
-            "path": "economy/shop.md"
+            "id": "getting-started",
+            "title": "Getting Started",
+            "iconName": "🚀",
+            "path": "guides/getting-started.md"
           }
         ]
       }
@@ -97,10 +111,10 @@ To use an emoji, simply place the character in the `iconName` field in `wiki-man
 ```json
 {
   "type": "page",
-  "id": "factions",
-  "title": "Factions",
-  "iconName": "⚔️",
-  "path": "raznoe/factions.md"
+  "id": "styling",
+  "title": "Styling",
+  "iconName": "🎨",
+  "path": "modify/styling.md"
 }
 ```
 
@@ -137,26 +151,10 @@ To change the title that appears in the browser tab, edit the `<title>` tag in `
 </head>
 ```
 
-### Changing the Browser Icon (Favicon)
+### Changing the Logo and Favicon
 
-To change the icon that appears in the browser tab, modify the `<link rel="icon">` tag in the `<head>` of `index.html`. You can use a link to an image file (`.ico`, `.png`, `.svg`) or an inline SVG data URI, as is currently done.
+The application uses a single image file for both the browser icon (favicon) and the main logo in the header.
 
-```html
-<!-- index.html -->
-<head>
-  ...
-  <!-- Replace with your own icon -->
-  <link rel="icon" href="https://your-domain.com/favicon.ico">
-  ...
-</head>
-```
-
-### Changing the In-App Logo
-
-The logo used in the header is the `StoryMCLogoIcon` component. To change it:
-
-1.  Open `components/icons.tsx`.
-2.  Find the `StoryMCLogoIcon` component.
-3.  Replace the SVG code inside it with your own logo's SVG code.
+To change the logo, simply replace the `public/logo.png` file with your own image. For best results, use a square image.
 
 You can also change the site name text next to the logo by editing the `<span>` tag inside the `<header>` in `App.tsx`.

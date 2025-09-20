@@ -1,5 +1,3 @@
-### Custom Icons
-
 To use a custom icon, use its name in the `iconName` field.
 
 **Available Custom Icons:**
