@@ -34,9 +34,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'npm'
+          # Удалено cache: 'npm' для избежания требования к файлу блокировки
       - name: Install dependencies
-        run: npm ci
+        run: npm install  # Изменено с npm ci
       - name: Build
         run: npm run build
       - name: Setup Pages
