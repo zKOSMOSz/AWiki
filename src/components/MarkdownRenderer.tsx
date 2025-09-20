@@ -296,11 +296,18 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                     );
                 case 'code':
                     return (
-                        <pre key={index} className="bg-zinc-100 dark:bg-zinc-950 border border-transparent dark:border-zinc-800 p-4 rounded-lg my-4 overflow-x-auto text-sm">
-                            <code className={block.lang ? `language-${block.lang}` : ''}>
-                                {block.content}
-                            </code>
-                        </pre>
+                        <div key={index} className="relative my-4">
+                            <pre className="bg-zinc-100 dark:bg-zinc-950 border border-transparent dark:border-zinc-800 p-4 pt-8 rounded-lg overflow-x-auto text-sm">
+                                <code className={block.lang ? `language-${block.lang}` : ''}>
+                                    {block.content}
+                                </code>
+                            </pre>
+                            {block.lang && (
+                                <div className="absolute top-2 right-3 text-xs text-gray-400 dark:text-zinc-500 select-none">
+                                    {block.lang}
+                                </div>
+                            )}
+                        </div>
                     );
                 case 'table':
                     return (
