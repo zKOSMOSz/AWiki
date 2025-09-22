@@ -4,10 +4,14 @@ import MarkdownRenderer from './components/MarkdownRenderer';
 import type { WikiTreeItem, WikiPage, WikiSection } from './types';
 import { 
   MenuIcon, XIcon, StoryMCLogoIcon, FolderIcon,
-  ChevronLeftIcon, ChevronRightIcon, SunIcon, MoonIcon, ComputerDesktopIcon
+  ChevronLeftIcon, ChevronRightIcon, SunIcon, MoonIcon, ComputerDesktopIcon,
+  PencilIcon, DownloadIcon,
 } from './components/icons';
 import { iconMap } from './components/iconMap';
 import { SITE_NAME } from './config';
+
+// Tell typescript about JSZip from CDN
+declare const JSZip: any;
 
 const PageHeader: React.FC<{title: string, icon?: React.ReactNode}> = ({ title, icon }) => (
     <div className="flex items-center space-x-3 mb-8">
@@ -53,6 +57,11 @@ const App: React.FC = () => {
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
+  
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [editableWikiTree, setEditableWikiTree] = useState<WikiTreeItem[]>([]);
+  const [editedContentCache, setEditedContentCache] = useState<Record<string, string>>({});
 
   useEffect(() => {
     document.title = SITE_NAME;
@@ -151,7 +160,7 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    if (!activePage || isTreeLoading) return;
+    if (!activePage || isTreeLoading || isEditMode) return;
 
     const path = activePage?.type === 'page' ? activePage.path : (activePage?.type === 'section' ? activePage.path : undefined);
 
@@ -170,24 +179,196 @@ const App: React.FC = () => {
       setActiveContent('');
       setIsPageLoading(false);
     }
-  }, [activePage, isTreeLoading, wikiTree]);
+  }, [activePage, isTreeLoading, wikiTree, isEditMode]);
   
   const handleSelectPage = (id: string) => {
-    const item = findItemById(wikiTree, id);
+    const item = findItemById(isEditMode ? editableWikiTree : wikiTree, id);
     setActivePage(item);
+    
+    if (isEditMode && item) {
+        const path = item.type === 'page' ? item.path : (item.type === 'section' ? item.path : undefined);
+        if (path && editedContentCache[path] !== undefined) {
+            setActiveContent(editedContentCache[path]);
+        } else {
+            setActiveContent(item.type === 'section' && !item.path ? 'This section has no index page. Add a `path` property in edit mode to create one.' : '');
+        }
+    }
+
     if(window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
   };
+
+  // --- EDIT MODE FUNCTIONS ---
+
+  const handleToggleEditMode = async () => {
+    if (!isEditMode) {
+      setIsEditMode(true);
+      setEditableWikiTree(JSON.parse(JSON.stringify(wikiTree))); // Deep copy
+
+      const contentPromises = flatPages.map(page => 
+        fetch(`${import.meta.env.BASE_URL}wiki/${page.path}`)
+          .then(res => res.ok ? res.text() : Promise.resolve(`# Error: Could not load ${page.path}`))
+          .then(text => ({ path: page.path, content: text }))
+      );
+      
+      try {
+        const contents = await Promise.all(contentPromises);
+        const cache = contents.reduce((acc, {path, content}) => {
+          acc[path] = content;
+          return acc;
+        }, {} as Record<string, string>);
+        setEditedContentCache(cache);
+        
+        const pagePath = activePage?.type === 'page' ? activePage.path : (activePage?.type === 'section' ? activePage.path : undefined);
+        if (pagePath && cache[pagePath]) {
+            setActiveContent(cache[pagePath]);
+        }
+      } catch (error) {
+        console.error("Error pre-fetching wiki content:", error);
+        alert("Failed to load all content for editing.");
+        setIsEditMode(false);
+      }
+    } else {
+      if (confirm("Are you sure? Any unsaved changes will be lost.")) {
+          setIsEditMode(false);
+          const originalItem = findItemById(wikiTree, activePage?.id || '');
+          setActivePage(originalItem);
+      }
+    }
+  };
+
+  const handleContentChange = (newContent: string) => {
+    if (!activePage || !isEditMode) return;
+    const path = (activePage as WikiPage).path;
+    if (path) {
+        setActiveContent(newContent);
+        setEditedContentCache(prev => ({...prev, [path]: newContent}));
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    if (typeof JSZip === 'undefined') {
+        alert("Error: JSZip library not found.");
+        return;
+    }
+    const zip = new JSZip();
+    zip.file("wiki-manifest.json", JSON.stringify(editableWikiTree, null, 2));
+
+    try {
+        const logoResponse = await fetch(`${import.meta.env.BASE_URL}logo.png`);
+        if (logoResponse.ok) zip.file("logo.png", await logoResponse.blob());
+    } catch (e) { console.warn("Could not fetch logo.png, skipping."); }
+
+    const wikiFolder = zip.folder("wiki");
+    if (wikiFolder) {
+        Object.keys(editedContentCache).forEach(path => {
+            wikiFolder.file(path, editedContentCache[path]);
+        });
+    }
+    
+    zip.generateAsync({ type: "blob" }).then(content => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = "awiki-export.zip";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert("Wiki downloaded!\n\nTo apply changes, unzip the file, replace `wiki-manifest.json` and the `public/wiki/` directory in your project, then commit.");
+    });
+  };
+  
+  const generateSafeId = (title: string) => title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+  const handleAddItem = (parentId: string | null) => {
+    const type = prompt("Add 'page' or 'section'?", "page");
+    if (type !== 'page' && type !== 'section') return;
+    
+    const title = prompt("Enter the title:");
+    if (!title) return;
+
+    const id = generateSafeId(title);
+    const icon = prompt("Enter an icon (emoji or icon name):", "📜");
+
+    const newItem: WikiPage | WikiSection = type === 'page'
+        ? { type: 'page', id, title, path: `${id}.md`, iconName: icon || undefined }
+        : { type: 'section', id, title, iconName: icon || undefined, children: [] };
+
+    if (newItem.type === 'page') {
+        setEditedContentCache(prev => ({...prev, [newItem.path]: `# ${newItem.title}\n\nStart writing here.`}));
+    }
+    
+    const addItemRecursive = (nodes: WikiTreeItem[]): WikiTreeItem[] => {
+        if (parentId === null) {
+            return [...nodes, newItem];
+        }
+        return nodes.map(node => {
+            if (node.id === parentId && node.type === 'section') {
+                return { ...node, children: [...node.children, newItem] };
+            }
+            if (node.type === 'section') {
+                return { ...node, children: addItemRecursive(node.children) };
+            }
+            return node;
+        });
+    };
+    setEditableWikiTree(prev => addItemRecursive(prev));
+  };
+  
+  const handleDeleteItem = (itemId: string, itemPath?: string) => {
+    if (!confirm(`Delete this item? This cannot be undone.`)) return;
+
+    const removeItem = (nodes: WikiTreeItem[]): WikiTreeItem[] => {
+        return nodes.filter(node => {
+            if (node.id === itemId) return false;
+            if (node.type === 'section') {
+                node.children = removeItem(node.children);
+            }
+            return true;
+        });
+    };
+    
+    setEditableWikiTree(prev => removeItem(JSON.parse(JSON.stringify(prev))));
+    if (itemPath) {
+        setEditedContentCache(prev => {
+            const newCache = {...prev};
+            delete newCache[itemPath];
+            return newCache;
+        });
+    }
+    if (activePage?.id === itemId) {
+       setActivePage(null);
+       setActiveContent('');
+    }
+  };
+
+  const handleEditItem = (item: WikiTreeItem) => {
+      const newTitle = prompt("Enter new title:", item.title);
+      const newIcon = prompt("Enter new icon:", item.iconName || "");
+
+      if (!newTitle) return;
+
+      const editItem = (nodes: WikiTreeItem[]): WikiTreeItem[] => {
+          return nodes.map(node => {
+              if (node.id === item.id) {
+                  return { ...node, title: newTitle, iconName: newIcon || undefined };
+              }
+              if (node.type === 'section') {
+                  return { ...node, children: editItem(node.children) };
+              }
+              return node;
+          });
+      };
+      setEditableWikiTree(prev => editItem(prev));
+  };
+
+  // --- RENDER LOGIC ---
   
   if (isTreeLoading) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">
-            Loading Wiki...
-        </div>
-    );
+    return <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Loading Wiki...</div>;
   }
 
+  const currentTree = isEditMode ? editableWikiTree : wikiTree;
   const currentPageIndex = activePage ? flatPages.findIndex(p => p.id === activePage.id) : -1;
   const prevPage = currentPageIndex > 0 ? flatPages[currentPageIndex - 1] as WikiPage : null;
   const nextPage = currentPageIndex !== -1 && currentPageIndex < flatPages.length - 1 ? flatPages[currentPageIndex + 1] as WikiPage : null;
@@ -195,13 +376,9 @@ const App: React.FC = () => {
   const activePageIconName = (activePage?.type === 'page' || activePage?.type === 'section') ? activePage.iconName : undefined;
 
   const renderPageHeaderIcon = (iconName?: string) => {
-      if (!iconName) {
-          return <FolderIcon className="w-8 h-8 text-yellow-500" />;
-      }
+      if (!iconName) return <FolderIcon className="w-8 h-8 text-yellow-500" />;
       const CustomIcon = iconMap[iconName];
-      if (CustomIcon) {
-          return <CustomIcon className="w-8 h-8 text-yellow-500" />;
-      }
+      if (CustomIcon) return <CustomIcon className="w-8 h-8 text-yellow-500" />;
       return <span className="text-3xl">{iconName}</span>;
   }
 
@@ -213,7 +390,15 @@ const App: React.FC = () => {
       ></div>
 
       <aside className={`fixed top-0 left-0 z-40 h-full w-64 bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 transform transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar wikiTree={wikiTree} activePageId={activePage?.id || null} onSelectPage={handleSelectPage} />
+        <Sidebar 
+          wikiTree={currentTree} 
+          activePageId={activePage?.id || null} 
+          onSelectPage={handleSelectPage} 
+          isEditMode={isEditMode}
+          onAddItem={handleAddItem}
+          onDeleteItem={handleDeleteItem}
+          onEditItem={handleEditItem}
+        />
       </aside>
 
       <div className="flex-1 flex flex-col lg:pl-64">
@@ -227,18 +412,47 @@ const App: React.FC = () => {
               <span className="font-bold text-zinc-900 dark:text-white text-lg">{SITE_NAME}</span>
             </div>
           </div>
+          <div className="flex items-center space-x-2">
+             <button onClick={handleToggleEditMode} title={isEditMode ? "Exit Edit Mode" : "Edit Wiki"} className={`p-2 rounded-md transition-colors ${isEditMode ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'hover:bg-gray-200 dark:hover:bg-zinc-800'}`}>
+                <PencilIcon className="w-5 h-5"/>
+             </button>
+          </div>
         </header>
+
+        {isEditMode && (
+          <div className="sticky top-16 z-10 bg-yellow-100 dark:bg-yellow-900/50 border-b border-yellow-300 dark:border-yellow-800 p-2 text-center text-sm text-yellow-800 dark:text-yellow-200 flex items-center justify-center space-x-4">
+            <span>You are in Edit Mode.</span>
+            <button onClick={handleDownloadZip} className="flex items-center space-x-2 bg-blue-500 text-white px-3 py-1.5 rounded-md hover:bg-blue-600 transition-colors text-xs font-semibold">
+              <DownloadIcon className="w-4 h-4" />
+              <span>Download Wiki</span>
+            </button>
+          </div>
+        )}
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto p-4 md:p-8 lg:p-12 relative">
-             {isPageLoading 
+             {isPageLoading && !isEditMode
               ? <div className="text-center text-gray-400">Loading...</div>
               : (
-                <>
-                  <PageHeader title={activePage?.title || "Welcome"} icon={renderPageHeaderIcon(activePageIconName)}/>
-                  <MarkdownRenderer content={activeContent} />
-                  <PageNavigation prevPage={prevPage} nextPage={nextPage} onSelectPage={handleSelectPage} />
-                </>
+                isEditMode ? (
+                  <div>
+                    <PageHeader title={activePage?.title || "Edit Mode"} icon={renderPageHeaderIcon(activePageIconName)} />
+                    <textarea
+                        key={activePage?.id} // Re-mount textarea on page change
+                        className="w-full h-[70vh] bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md p-4 font-mono text-sm leading-6 resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        value={activeContent}
+                        onChange={(e) => handleContentChange(e.target.value)}
+                        placeholder="Start writing your markdown here..."
+                        disabled={!activePage || !(activePage.type === 'page' || (activePage.type === 'section' && activePage.path))}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <PageHeader title={activePage?.title || "Welcome"} icon={renderPageHeaderIcon(activePageIconName)}/>
+                    <MarkdownRenderer content={activeContent} />
+                    <PageNavigation prevPage={prevPage} nextPage={nextPage} onSelectPage={handleSelectPage} />
+                  </>
+                )
               )
             }
           </div>
