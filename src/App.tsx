@@ -7,6 +7,7 @@ import {
   ChevronLeftIcon, ChevronRightIcon, SunIcon, MoonIcon, ComputerDesktopIcon
 } from './components/icons';
 import { iconMap } from './components/iconMap';
+import { SITE_NAME } from './config';
 
 const PageHeader: React.FC<{title: string, icon?: React.ReactNode}> = ({ title, icon }) => (
     <div className="flex items-center space-x-3 mb-8">
@@ -20,7 +21,7 @@ const PageNavigation: React.FC<{nextPage: WikiPage | null, prevPage: WikiPage | 
         <div>
             {prevPage && (
                 <button onClick={() => onSelectPage(prevPage.id)} className="w-full text-left p-4 border border-gray-200 dark:border-zinc-800 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Предыдущая</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Previous</div>
                     <div className="flex items-center text-zinc-900 dark:text-white font-medium">
                         <ChevronLeftIcon className="w-4 h-4 mr-2" />
                         {prevPage.title}
@@ -31,7 +32,7 @@ const PageNavigation: React.FC<{nextPage: WikiPage | null, prevPage: WikiPage | 
         <div>
             {nextPage && (
                 <button onClick={() => onSelectPage(nextPage.id)} className="w-full text-right p-4 border border-gray-200 dark:border-zinc-800 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Следующая</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Next</div>
                     <div className="flex items-center justify-end text-zinc-900 dark:text-white font-medium">
                         {nextPage.title}
                         <ChevronRightIcon className="w-4 h-4 ml-2" />
@@ -52,6 +53,10 @@ const App: React.FC = () => {
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
+
+  useEffect(() => {
+    document.title = SITE_NAME;
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -219,7 +224,7 @@ const App: React.FC = () => {
             </button>
             <div className="hidden lg:flex items-center space-x-2">
               <StoryMCLogoIcon className="w-8 h-8"/>
-              <span className="font-bold text-zinc-900 dark:text-white text-lg">StoryMC</span>
+              <span className="font-bold text-zinc-900 dark:text-white text-lg">{SITE_NAME}</span>
             </div>
           </div>
         </header>

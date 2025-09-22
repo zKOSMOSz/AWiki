@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { WikiTreeItem } from '../types';
 import { ChevronRightIcon } from './icons';
 import { iconMap } from './iconMap';
+import { SITE_NAME } from '../config';
 
 interface SidebarProps {
   wikiTree: WikiTreeItem[];
@@ -42,7 +43,6 @@ const NavItem: React.FC<{ item: WikiTreeItem; activePageId: string | null; onSel
         <button
           onClick={handleItemClick}
           className={`${commonClasses} justify-between ${isActive && item.path ? activeClasses : inactiveClasses}`}
-          disabled={!hasContent}
         >
           <div className="flex items-center space-x-2.5">
             {iconElement}
@@ -78,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ wikiTree, activePageId, onSelectPage 
   return (
     <div className="h-full flex flex-col text-sm">
         <div className="h-16 flex items-center px-4 lg:hidden">
-             <span className="font-bold text-zinc-900 dark:text-white text-lg">StoryMC</span>
+             <span className="font-bold text-zinc-900 dark:text-white text-lg">{SITE_NAME}</span>
         </div>
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
             {wikiTree.map((item) => {

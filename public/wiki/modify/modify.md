@@ -34,7 +34,7 @@ To add a new page titled "Styling" under the "Modify" section:
         {
           "type": "page",
           "id": "custom",
-          "title": "Сustom",
+          "title": "Custom",
           "iconName": "👤",
           "path": "modify/custom/custom.md"
         },

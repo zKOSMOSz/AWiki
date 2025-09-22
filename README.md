@@ -1,6 +1,6 @@
 # AWiki
 
-This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort.
+This is a static wiki built with React and TypeScript. You can easily create your own wiki without any extra effort. It features a clean, modern interface inspired by documentation sites like Nextra and GitBook.
 
 > [!WARNING]
 > This project currently requires a code review, as it was initially built using AI. We would welcome a review from anyone with knowledge of React, TypeScript, and static site generation.
@@ -12,6 +12,7 @@ This is a static wiki built with React and TypeScript. You can easily create you
 -   `index.html`: The main HTML file and entry point for the application.
 -   `index.tsx`: Mounts the main React application to the DOM.
 -   `public/logo.png`: The site logo and favicon image file.
+-   `src/config.ts`: A configuration file to easily change the site name.
 -   `App.tsx`: The root React component that handles the overall layout, state management, and routing between wiki pages.
 -   `wiki-manifest.json`: A JSON file that defines the navigation structure of the sidebar. This is the single source of truth for what pages exist and how they are organized.
 -   `wiki/`: A directory containing all the wiki content as Markdown (`.md`) files.
@@ -54,7 +55,7 @@ To add a new page titled "Styling" under the "Modify" section:
         {
           "type": "page",
           "id": "custom",
-          "title": "Сustom",
+          "title": "Custom",
           "iconName": "👤",
           "path": "modify/custom/custom.md"
         },
@@ -143,15 +144,28 @@ To use a custom icon, use its name in the `iconName` field.
 
 ## Customization
 
-### Changing the Site Title
+### Changing the Site Name and Title
 
-To change the title that appears in the browser tab, edit the `<title>` tag in `index.html`.
+To make customization easier, the site name is managed from a single configuration file.
+
+1.  **Open `src/config.ts`:**
+
+    ```typescript
+    export const SITE_NAME = "Your New Wiki Name";
+    ```
+
+2.  **Change the `SITE_NAME` variable.** This will automatically update:
+    -   The site name in the header.
+    -   The site name in the mobile sidebar.
+    -   The browser tab title (document title).
+
+For the initial title that appears before the application loads, you can also update the `<title>` tag in `index.html`.
 
 ```html
 <!-- index.html -->
 <head>
   ...
-  <title>Your New Wiki Title</title>
+  <title>Your New Wiki Name</title>
   ...
 </head>
 ```
@@ -161,5 +175,3 @@ To change the title that appears in the browser tab, edit the `<title>` tag in `
 The application uses a single image file for both the browser icon (favicon) and the main logo in the header.
 
 To change the logo, simply replace the `public/logo.png` file with your own image. For best results, use a square image.
-
-You can also change the site name text next to the logo by editing the `<span>` tag inside the `<header>` in `App.tsx`.

@@ -23,7 +23,7 @@
       {
         "type": "page",
         "id": "custom",
-        "title": "Сustom",
+        "title": "Custom",
         "iconName": "👤",
         "path": "modify/custom/custom.md"
       }
