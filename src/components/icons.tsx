@@ -1,3 +1,6 @@
+// Fix: Add Vite client types to declare import.meta.env for TypeScript.
+/// <reference types="vite/client" />
+
 import React from 'react';
 
 export const InfoIcon: React.FC<{className?: string}> = (props) => (

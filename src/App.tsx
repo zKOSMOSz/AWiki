@@ -1,3 +1,6 @@
+// Fix: Add Vite client types to declare import.meta.env for TypeScript.
+/// <reference types="vite/client" />
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import MarkdownRenderer from './components/MarkdownRenderer';
@@ -190,7 +193,7 @@ const App: React.FC = () => {
         if (path && editedContentCache[path] !== undefined) {
             setActiveContent(editedContentCache[path]);
         } else {
-            setActiveContent(item.type === 'section' && !item.path ? 'This section has no index page. Add a `path` property in edit mode to create one.' : '');
+            setActiveContent(item.type === 'section' && !item.path ? 'This is a folder. Select a page inside it or add a new one.' : '');
         }
     }
 
@@ -281,17 +284,41 @@ const App: React.FC = () => {
   const generateSafeId = (title: string) => title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
   const handleAddItem = (parentId: string | null) => {
-    const type = prompt("Add 'page' or 'section'?", "page");
-    if (type !== 'page' && type !== 'section') return;
+    const type = prompt("Add 'page' or 'folder'?", "page");
+    if (type !== 'page' && type !== 'folder') return;
     
     const title = prompt("Enter the title:");
     if (!title) return;
 
     const id = generateSafeId(title);
-    const icon = prompt("Enter an icon (emoji or icon name):", "📜");
+    const icon = prompt("Enter an icon (emoji or icon name):", type === 'page' ? "📜" : "📁");
+    
+    const getPathPrefixForItem = (nodes: WikiTreeItem[], itemId: string, prefix = ''): string | null => {
+        for (const node of nodes) {
+            if (node.id === itemId) {
+                return prefix;
+            }
+            if (node.type === 'section') {
+                const result = getPathPrefixForItem(node.children, itemId, prefix + node.id + '/');
+                if (result !== null) return result;
+            }
+        }
+        return null;
+    };
+
+    let basePath = '';
+    if (parentId) {
+      const parentPrefix = getPathPrefixForItem(editableWikiTree, parentId) || '';
+      const parent = findItemById(editableWikiTree, parentId);
+      if (parent && parent.type === 'section') {
+          basePath = parentPrefix + parent.id + '/';
+      } else {
+          basePath = parentPrefix;
+      }
+    }
 
     const newItem: WikiPage | WikiSection = type === 'page'
-        ? { type: 'page', id, title, path: `${id}.md`, iconName: icon || undefined }
+        ? { type: 'page', id, title, path: `${basePath}${id}.md`, iconName: icon || undefined }
         : { type: 'section', id, title, iconName: icon || undefined, children: [] };
 
     if (newItem.type === 'page') {
