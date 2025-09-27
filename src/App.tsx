@@ -15,7 +15,7 @@ import PageHeader from './components/PageHeader';
 import PageNavigation from './components/PageNavigation';
 import type { WikiTreeItem, WikiPage, WikiSection } from './types';
 import { 
-  MenuIcon, XIcon, StoryMCLogoIcon, FolderIcon,
+  MenuIcon, XIcon, FolderIcon,
   SunIcon, MoonIcon, ComputerDesktopIcon,
   PencilIcon, DownloadIcon
 } from './components/icons';
@@ -25,6 +25,10 @@ import { SITE_NAME } from './config';
 // Tell typescript about JSZip from CDN
 declare const JSZip: any;
 
+// Define the component here to isolate the use of import.meta.env and fix the build issue.
+const StoryMCLogoIcon: React.FC<{className?: string}> = (props) => (
+    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="AWiki Logo" className={props.className} />
+);
 
 const App: React.FC = () => {
   const [wikiTree, setWikiTree] = useState<WikiTreeItem[]>([]);
