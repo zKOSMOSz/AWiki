@@ -15,24 +15,50 @@ const EditorToolbar: React.FC<{
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const selectedText = textarea.value.substring(start, end);
-        
-        let replacement;
+        const textBefore = textarea.value.substring(0, start);
+        const textAfter = textarea.value.substring(end);
+
+        // Block-level elements like links don't toggle
         if (isBlock) {
-             replacement = `${syntax}${selectedText || placeholder}`;
-        } else {
-             replacement = `${syntax}${selectedText || placeholder}${syntax}`;
+            const replacement = `${syntax}${selectedText || placeholder}`;
+            const newContent = textBefore + replacement + textAfter;
+            onContentChange(newContent);
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + syntax.length, start + syntax.length + placeholder.length);
+            }, 0);
+            return;
         }
 
-        const newContent = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+        const isWrapped = textBefore.endsWith(syntax) && textAfter.startsWith(syntax);
+
+        let newContent;
+        let newStart;
+        let newEnd;
+
+        if (isWrapped) {
+            // Unwrap the text
+            newContent = textBefore.slice(0, textBefore.length - syntax.length) + selectedText + textAfter.slice(syntax.length);
+            newStart = start - syntax.length;
+            newEnd = end - syntax.length;
+        } else {
+            // Wrap the text
+            const replacement = `${syntax}${selectedText || placeholder}${syntax}`;
+            newContent = textBefore + replacement + textAfter;
+            if (selectedText) {
+                newStart = start; // keep selection the same to allow for re-application checks
+                newEnd = end + (2 * syntax.length);
+            } else { // Placeholder case
+                newStart = start + syntax.length;
+                newEnd = start + syntax.length + placeholder.length;
+            }
+        }
+
         onContentChange(newContent);
 
         setTimeout(() => {
             textarea.focus();
-            if (!selectedText) {
-                textarea.setSelectionRange(start + syntax.length, start + syntax.length + placeholder.length);
-            } else {
-                textarea.setSelectionRange(start + replacement.length, start + replacement.length);
-            }
+            textarea.setSelectionRange(newStart, newEnd);
         }, 0);
     };
     
@@ -95,7 +121,7 @@ const EditorToolbar: React.FC<{
     ];
     
     return (
-        <div className="bg-gray-100 dark:bg-zinc-800 p-2 rounded-t-md border-b border-gray-300 dark:border-zinc-700 flex items-center space-x-1">
+        <div className="bg-gray-100 dark:bg-zinc-800 p-2 rounded-t-md border-b-0 border-gray-300 dark:border-zinc-700 flex items-center space-x-1 flex-wrap">
             {buttons.map((btn, index) => (
                 <button key={index} onClick={btn.onClick} title={btn.title} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300">
                     <btn.icon className="w-5 h-5" />

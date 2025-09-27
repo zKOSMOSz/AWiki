@@ -164,20 +164,23 @@ export const IconStrikethrough: React.FC<{className?: string}> = (props) => (
 );
 
 export const IconH1: React.FC<{className?: string}> = (props) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12h8"></path><path d="M4 18V6"></path><path d="M12 18V6"></path><path d="M17 10h3v8h-3"></path><path d="M17 14h3"></path>
+  <svg {...props} viewBox="0 0 24 24" fill="currentColor">
+    <text x="3" y="19" fontSize="18px" fontWeight="600" fontFamily="sans-serif">H</text>
+    <text x="14" y="19" fontSize="14px" fontWeight="600" fontFamily="sans-serif">1</text>
   </svg>
 );
 
 export const IconH2: React.FC<{className?: string}> = (props) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12h8"></path><path d="M4 18V6"></path><path d="M12 18V6"></path><path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"></path>
+  <svg {...props} viewBox="0 0 24 24" fill="currentColor">
+    <text x="3" y="19" fontSize="16px" fontWeight="600" fontFamily="sans-serif">H</text>
+    <text x="14" y="19" fontSize="14px" fontWeight="600" fontFamily="sans-serif">2</text>
   </svg>
 );
 
 export const IconH3: React.FC<{className?: string}> = (props) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12h8"></path><path d="M4 18V6"></path><path d="M12 18V6"></path><path d="M17.5 10.5c1.5-1.5 1.5-2.5 0-4s-3.5.5-2 3l2 1c-1.5 1.5-1.5 2.5 0 4s3.5-.5 2-3l-2-1"></path>
+  <svg {...props} viewBox="0 0 24 24" fill="currentColor">
+    <text x="3" y="19" fontSize="14px" fontWeight="600" fontFamily="sans-serif">H</text>
+    <text x="14" y="19" fontSize="14px" fontWeight="600" fontFamily="sans-serif">3</text>
   </svg>
 );
 
