@@ -8,7 +8,7 @@ const EditorToolbar: React.FC<{
     onContentChange: (content: string) => void;
 }> = ({ textareaRef, onContentChange }) => {
     
-    const applyFormat = (syntax: string, placeholder: string, isBlock: boolean = false) => {
+    const applyFormat = (syntax: string, placeholder: string) => {
         const textarea = textareaRef.current;
         if (!textarea) return;
 
@@ -18,26 +18,20 @@ const EditorToolbar: React.FC<{
         const textBefore = textarea.value.substring(0, start);
         const textAfter = textarea.value.substring(end);
 
-        // Block-level elements like links don't toggle
-        if (isBlock) {
-            const replacement = `${syntax}${selectedText || placeholder}`;
-            const newContent = textBefore + replacement + textAfter;
-            onContentChange(newContent);
-            setTimeout(() => {
-                textarea.focus();
-                textarea.setSelectionRange(start + syntax.length, start + syntax.length + placeholder.length);
-            }, 0);
-            return;
-        }
-
-        const isWrapped = textBefore.endsWith(syntax) && textAfter.startsWith(syntax);
+        const isWrappedByOuter = textBefore.endsWith(syntax) && textAfter.startsWith(syntax);
+        const isWrappedByInner = selectedText.startsWith(syntax) && selectedText.endsWith(syntax);
 
         let newContent;
         let newStart;
         let newEnd;
 
-        if (isWrapped) {
-            // Unwrap the text
+        if (isWrappedByInner) {
+            // Unwrap from inside the selection (e.g., user selected "**text**")
+            newContent = textBefore + selectedText.slice(syntax.length, selectedText.length - syntax.length) + textAfter;
+            newStart = start;
+            newEnd = end - (2 * syntax.length);
+        } else if (isWrappedByOuter) {
+            // Unwrap from outside the selection (e.g., user selected "text" from "**text**")
             newContent = textBefore.slice(0, textBefore.length - syntax.length) + selectedText + textAfter.slice(syntax.length);
             newStart = start - syntax.length;
             newEnd = end - syntax.length;
@@ -45,13 +39,8 @@ const EditorToolbar: React.FC<{
             // Wrap the text
             const replacement = `${syntax}${selectedText || placeholder}${syntax}`;
             newContent = textBefore + replacement + textAfter;
-            if (selectedText) {
-                newStart = start; // keep selection the same to allow for re-application checks
-                newEnd = end + (2 * syntax.length);
-            } else { // Placeholder case
-                newStart = start + syntax.length;
-                newEnd = start + syntax.length + placeholder.length;
-            }
+            newStart = start + syntax.length;
+            newEnd = newStart + (selectedText || placeholder).length;
         }
 
         onContentChange(newContent);
@@ -66,44 +55,85 @@ const EditorToolbar: React.FC<{
         const textarea = textareaRef.current;
         if (!textarea) return;
 
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
+        const { selectionStart, selectionEnd, value } = textarea;
 
-        let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        // Find the full lines encompassed by the selection
+        const firstLineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+        const lastLineEnd = value.indexOf('\n', selectionEnd) === -1 
+            ? value.length 
+            : value.indexOf('\n', selectionEnd);
         
-        const selectedLinesText = value.substring(lineStart, end);
-        const lines = (start === end ? value.substring(lineStart, value.indexOf('\n', lineStart) === -1 ? value.length : value.indexOf('\n', lineStart)) : selectedLinesText).split('\n');
+        const blockToChange = value.substring(firstLineStart, lastLineEnd);
+        const lines = blockToChange.split('\n');
         
-        const alreadyHasPrefix = lines.every(line => line.startsWith(prefix) || line.trim() === '');
+        const alreadyHasPrefix = lines.every(line => line.trim() === '' || line.startsWith(prefix));
         
-        const newLines = lines.map(line => {
-             if (line.trim() === '') return line;
-             if (alreadyHasPrefix) {
-                 return line.substring(prefix.length);
-             }
-             // Remove other prefixes before adding new one
-             line = line.replace(/^(#+\s|\>\s|-\s|\*\s|\d+\.\s)/, '');
-             return prefix + line;
-        }).join('\n');
+        let startDelta = 0;
+        let endDelta = 0;
 
-        let newContent;
-        if (start === end) {
-          const lineEnd = value.indexOf('\n', lineStart) === -1 ? value.length : value.indexOf('\n', lineStart);
-          newContent = value.substring(0, lineStart) + newLines + value.substring(lineEnd);
-        } else {
-          newContent = value.substring(0, lineStart) + newLines + value.substring(end);
-        }
+        const newLines = lines.map((line, index) => {
+            // Check if this line is before or at the start of the selection
+            const lineStartPos = value.indexOf(line, firstLineStart);
+            const isBeforeOrAtStart = lineStartPos < selectionStart;
+
+            if (line.trim() === '') return line;
+            
+            let change = 0;
+            let newLine = line;
+
+            if (alreadyHasPrefix) {
+                if (line.startsWith(prefix)) {
+                    newLine = line.substring(prefix.length);
+                    change = -prefix.length;
+                }
+            } else {
+                const originalLength = line.length;
+                const cleanedLine = line.replace(/^(#+\s|\>\s|-\s|\*\s|\d+\.\s)/, '');
+                newLine = prefix + cleanedLine;
+                change = newLine.length - originalLength;
+            }
+
+            if (isBeforeOrAtStart) {
+                startDelta += change;
+            }
+            endDelta += change;
+
+            return newLine;
+        });
+
+        const newBlock = newLines.join('\n');
+        const newContent = value.substring(0, firstLineStart) + newBlock + value.substring(lastLineEnd);
         
         onContentChange(newContent);
-        setTimeout(() => textarea.focus(), 0);
+        
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(selectionStart + startDelta, selectionEnd + endDelta);
+        }, 0);
     };
 
     const handleLink = () => {
         const url = prompt("Enter the URL:", "https://");
-        if (url) {
-            applyFormat('[', `link text](${url})`, true);
-        }
+        if (!url) return;
+        
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end) || 'link text';
+        const textBefore = textarea.value.substring(0, start);
+        const textAfter = textarea.value.substring(end);
+
+        const replacement = `[${selectedText}](${url})`;
+        const newContent = textBefore + replacement + textAfter;
+        onContentChange(newContent);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + replacement.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
     };
 
     const buttons = [
