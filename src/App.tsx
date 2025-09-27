@@ -1,54 +1,29 @@
-// Fix: Add Vite client types to declare import.meta.env for TypeScript.
-/// <reference types="vite/client" />
+// Fix: Manually define types for import.meta.env because vite/client types are not found.
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      readonly BASE_URL: string;
+    };
+  }
+}
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import MarkdownRenderer from './components/MarkdownRenderer';
+import EditorToolbar from './components/EditorToolbar';
+import PageHeader from './components/PageHeader';
+import PageNavigation from './components/PageNavigation';
 import type { WikiTreeItem, WikiPage, WikiSection } from './types';
 import { 
   MenuIcon, XIcon, StoryMCLogoIcon, FolderIcon,
-  ChevronLeftIcon, ChevronRightIcon, SunIcon, MoonIcon, ComputerDesktopIcon,
-  PencilIcon, DownloadIcon,
+  SunIcon, MoonIcon, ComputerDesktopIcon,
+  PencilIcon, DownloadIcon
 } from './components/icons';
 import { iconMap } from './components/iconMap';
 import { SITE_NAME } from './config';
 
 // Tell typescript about JSZip from CDN
 declare const JSZip: any;
-
-const PageHeader: React.FC<{title: string, icon?: React.ReactNode}> = ({ title, icon }) => (
-    <div className="flex items-center space-x-3 mb-8">
-        {icon}
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{title}</h1>
-    </div>
-);
-
-const PageNavigation: React.FC<{nextPage: WikiPage | null, prevPage: WikiPage | null, onSelectPage: (id: string) => void}> = ({ nextPage, prevPage, onSelectPage }) => (
-    <div className="mt-8 pt-8 border-t border-gray-200 dark:border-zinc-800 grid grid-cols-2 gap-4">
-        <div>
-            {prevPage && (
-                <button onClick={() => onSelectPage(prevPage.id)} className="w-full text-left p-4 border border-gray-200 dark:border-zinc-800 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Previous</div>
-                    <div className="flex items-center text-zinc-900 dark:text-white font-medium">
-                        <ChevronLeftIcon className="w-4 h-4 mr-2" />
-                        {prevPage.title}
-                    </div>
-                </button>
-            )}
-        </div>
-        <div>
-            {nextPage && (
-                <button onClick={() => onSelectPage(nextPage.id)} className="w-full text-right p-4 border border-gray-200 dark:border-zinc-800 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Next</div>
-                    <div className="flex items-center justify-end text-zinc-900 dark:text-white font-medium">
-                        {nextPage.title}
-                        <ChevronRightIcon className="w-4 h-4 ml-2" />
-                    </div>
-                </button>
-            )}
-        </div>
-    </div>
-);
 
 
 const App: React.FC = () => {
@@ -65,6 +40,7 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editableWikiTree, setEditableWikiTree] = useState<WikiTreeItem[]>([]);
   const [editedContentCache, setEditedContentCache] = useState<Record<string, string>>({});
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     document.title = SITE_NAME;
@@ -464,9 +440,11 @@ const App: React.FC = () => {
                 isEditMode ? (
                   <div>
                     <PageHeader title={activePage?.title || "Edit Mode"} icon={renderPageHeaderIcon(activePageIconName)} />
+                    <EditorToolbar textareaRef={textareaRef} onContentChange={handleContentChange} />
                     <textarea
+                        ref={textareaRef}
                         key={activePage?.id} // Re-mount textarea on page change
-                        className="w-full h-[70vh] bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md p-4 font-mono text-sm leading-6 resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full h-[70vh] bg-gray-50 dark:bg-zinc-800 border border-t-0 border-gray-300 dark:border-zinc-700 rounded-b-md p-4 font-mono text-sm leading-6 resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         value={activeContent}
                         onChange={(e) => handleContentChange(e.target.value)}
                         placeholder="Start writing your markdown here..."
