@@ -40,15 +40,15 @@ const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; title: R
     const hasContent = React.Children.count(children) > 0 && getReactNodeText(children).trim() !== '';
 
     return (
-        <div className={`my-4 rounded-lg ${config.bgColor}`}>
+        <div className={`my-4 rounded-lg overflow-hidden ${config.bgColor}`}>
             <div className={`flex items-start space-x-2.5 p-4`}>
-                <Icon className={`w-5 h-5 flex-shrink-0 mt-1 ${config.iconColor}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
                 <div className={`flex-1 font-semibold ${config.titleColor} prose prose-sm max-w-none [&_p]:my-0`}>
                     {title}
                 </div>
             </div>
             {hasContent && (
-              <div className="pb-4 pr-4 pl-11 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
+              <div className="pb-4 pr-4 pl-11 -mt-2 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
                   {children}
               </div>
             )}
@@ -59,7 +59,7 @@ const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; title: R
 
 const Details: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   return (
-    <details className="my-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 group transition-all duration-200">
+    <details className="my-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 group transition-all duration-200 overflow-hidden">
       <summary className="font-semibold cursor-pointer flex items-center p-4 text-zinc-900 dark:text-white list-none">
         <ChevronRightIcon className="w-5 h-5 mr-2 transition-transform duration-200 group-open:rotate-90" />
         {title}
@@ -100,64 +100,46 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     const components = {
         blockquote: (componentProps: { node?: any; children?: React.ReactNode; [key: string]: any }) => {
             const { node, children, ...props } = componentProps;
-            // Filter out insignificant children like empty text nodes from newlines
-            const significantChildren = React.Children.toArray(children).filter(child => {
-                return getReactNodeText(child).trim() !== '';
-            });
             
-            if (significantChildren.length === 0) {
+            const significantChildren = React.Children.toArray(children).filter(child => 
+                getReactNodeText(child).trim() !== ''
+            );
+            
+            if (significantChildren.length === 0 || !React.isValidElement(significantChildren[0])) {
                 return <blockquote {...props}>{children}</blockquote>;
             }
 
-            const firstChild = significantChildren[0];
+            const firstParagraph = significantChildren[0];
+            const rawText = getReactNodeText(firstParagraph);
+            const lines = rawText.split('\n');
+            const firstLine = lines[0] || '';
             
-            // Check if the first child is a paragraph element, which is where we expect the tag
-            if (!React.isValidElement(firstChild) || firstChild.type !== 'p') {
-                return <blockquote {...props}>{children}</blockquote>;
-            }
+            const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\](.*)/.exec(firstLine);
 
-            const firstParagraphText = getReactNodeText(firstChild);
-            const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\](.*)/s.exec(firstParagraphText);
-            
             if (match) {
                 const type = match[1].toLowerCase();
-                const titleText = match[2].trim(); // This is the raw text for the title line
+                const titleFromFirstLine = match[2].trim();
+                
+                const contentFromFirstParagraph = lines.slice(1).join('\n');
+                const remainingParagraphs = significantChildren.slice(1);
 
-                // The rest of the paragraphs form the main content
-                const contentNodes = significantChildren.slice(1);
+                const finalContent = (
+                    <>
+                        {contentFromFirstParagraph && <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentFromFirstParagraph}</ReactMarkdown>}
+                        {remainingParagraphs}
+                    </>
+                );
 
-                // --- Handle Details Component ---
                 if (type === 'details') {
-                    // The 'details' component uses the raw text as a string title
-                    return <Details title={titleText || 'Details'}>{contentNodes}</Details>;
+                    return <Details title={titleFromFirstLine || 'Details'}>{finalContent}</Details>;
                 }
 
-                // --- Handle Callout Components (NOTE, TIP, etc.) ---
                 if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
-                    
-                    // Re-create the first paragraph without the tag to use as the title OR part of the content
-                    // FIX: Cast firstChild.props to a type that includes children to resolve TypeScript error.
-                    const titleChildren = React.Children.map((firstChild.props as { children?: React.ReactNode }).children, child => {
-                        if (typeof child === 'string') {
-                            // Remove the tag syntax from the start of the string
-                            return child.replace(/^\s*\[!(?:NOTE|TIP|WARNING|CAUTION)\]\s*/, '');
-                        }
-                        return child;
-                    });
-                    const firstParagraphNode = <p>{titleChildren}</p>;
-
-                    // If there was text on the title line, it becomes the title.
-                    // Otherwise, use the default title and the first paragraph becomes content.
-                    if (titleText) {
-                        return <Callout type={type} title={firstParagraphNode}>{contentNodes}</Callout>;
-                    } else {
-                        const defaultTitle = type.charAt(0).toUpperCase() + type.slice(1);
-                        return <Callout type={type} title={defaultTitle}>{[firstParagraphNode, ...contentNodes]}</Callout>;
-                    }
+                    const defaultTitle = type.charAt(0).toUpperCase() + type.slice(1);
+                    return <Callout type={type} title={titleFromFirstLine || defaultTitle}>{finalContent}</Callout>;
                 }
             }
-
-            // If no match, render a standard blockquote
+            
             return <blockquote {...props}>{children}</blockquote>;
         },
     }
