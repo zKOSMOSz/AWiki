@@ -33,35 +33,24 @@ const calloutConfig = {
     }
 };
 
-// Helper to recursively get text content from React nodes
-function getReactNodeText(node: React.ReactNode): string {
-    if (typeof node === 'string') return node;
-    if (typeof node === 'number') return String(node);
-    if (Array.isArray(node)) return node.map(getReactNodeText).join('');
-    if (node === null || typeof node !== 'object' || !('props' in node)) return '';
-    const children = (node as { props: { children?: React.ReactNode } }).props.children;
-    if (children) {
-        return getReactNodeText(children);
-    }
-    return '';
-}
-
-const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; title: string; children: React.ReactNode }> = ({ type, title, children }) => {
+const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; title: React.ReactNode; children: React.ReactNode }> = ({ type, title, children }) => {
     const config = calloutConfig[type] || calloutConfig.note;
     const Icon = config.icon;
 
-    const hasContent = React.Children.toArray(children).some(child => getReactNodeText(child).trim() !== '');
+    const hasContent = React.Children.count(children) > 0 && getReactNodeText(children).trim() !== '';
 
     return (
-        <div className={`my-4 p-4 rounded-lg ${config.bgColor}`}>
-            <div className="flex items-center space-x-2.5">
-                <Icon className={`w-5 h-5 flex-shrink-0 ${config.iconColor}`} />
-                <span className={`font-semibold ${config.titleColor}`}>{title}</span>
+        <div className={`my-4 rounded-lg ${config.bgColor}`}>
+            <div className={`flex items-start space-x-2.5 p-4`}>
+                <Icon className={`w-5 h-5 flex-shrink-0 mt-1 ${config.iconColor}`} />
+                <div className={`flex-1 font-semibold ${config.titleColor} prose prose-sm max-w-none [&_p]:my-0`}>
+                    {title}
+                </div>
             </div>
             {hasContent && (
-               <div className="pl-[1.875rem] pt-2 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0">
-                    {children}
-                </div>
+              <div className="pb-4 pr-4 pl-11 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
+                  {children}
+              </div>
             )}
         </div>
     );
@@ -82,6 +71,20 @@ const Details: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   );
 };
 
+// Helper to recursively get text content from React nodes
+function getReactNodeText(node: React.ReactNode): string {
+    if (typeof node === 'string') return node;
+    if (typeof node === 'number') return String(node);
+    if (Array.isArray(node)) return node.map(getReactNodeText).join('');
+    if (node === null || typeof node !== 'object' || !('props' in node)) return '';
+    // Fix: Cast node to a type with props and children to satisfy TypeScript
+    const children = (node as { props: { children?: React.ReactNode } }).props.children;
+    if (children) {
+        return getReactNodeText(children);
+    }
+    return '';
+}
+
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     React.useEffect(() => {
         if (typeof Prism !== 'undefined') {
@@ -97,57 +100,64 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     const components = {
         blockquote: (componentProps: { node?: any; children?: React.ReactNode; [key: string]: any }) => {
             const { node, children, ...props } = componentProps;
+            // Filter out insignificant children like empty text nodes from newlines
             const significantChildren = React.Children.toArray(children).filter(child => {
-                 const text = getReactNodeText(child);
-                 return text.trim() !== '';
+                return getReactNodeText(child).trim() !== '';
             });
             
             if (significantChildren.length === 0) {
                 return <blockquote {...props}>{children}</blockquote>;
             }
 
-            // Fix: Use React.isValidElement as a type guard to ensure we have a valid element.
-            // This properly types `firstChild` and `firstChild.props` to avoid errors.
-            const firstChildNode = significantChildren[0];
+            const firstChild = significantChildren[0];
             
-            if (!React.isValidElement(firstChildNode) || firstChildNode.type !== 'p') {
+            // Check if the first child is a paragraph element, which is where we expect the tag
+            if (!React.isValidElement(firstChild) || firstChild.type !== 'p') {
                 return <blockquote {...props}>{children}</blockquote>;
             }
-
-            const firstChild = firstChildNode;
 
             const firstParagraphText = getReactNodeText(firstChild);
             const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\](.*)/s.exec(firstParagraphText);
             
             if (match) {
                 const type = match[1].toLowerCase();
-                
-                // For NOTE, TIP, etc., title is fixed, content is everything.
+                const titleText = match[2].trim(); // This is the raw text for the title line
+
+                // The rest of the paragraphs form the main content
+                const contentNodes = significantChildren.slice(1);
+
+                // --- Handle Details Component ---
+                if (type === 'details') {
+                    // The 'details' component uses the raw text as a string title
+                    return <Details title={titleText || 'Details'}>{contentNodes}</Details>;
+                }
+
+                // --- Handle Callout Components (NOTE, TIP, etc.) ---
                 if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
-                    const title = type.charAt(0).toUpperCase() + type.slice(1);
                     
-                    // Strip the tag from the first paragraph
-                    const firstParaChildren = React.Children.toArray(firstChild.props.children).map((child: any, index: number) => {
-                        if (index === 0 && typeof child === 'string') {
+                    // Re-create the first paragraph without the tag to use as the title OR part of the content
+                    // FIX: Cast firstChild.props to a type that includes children to resolve TypeScript error.
+                    const titleChildren = React.Children.map((firstChild.props as { children?: React.ReactNode }).children, child => {
+                        if (typeof child === 'string') {
+                            // Remove the tag syntax from the start of the string
                             return child.replace(/^\s*\[!(?:NOTE|TIP|WARNING|CAUTION)\]\s*/, '');
                         }
                         return child;
                     });
-                    const modifiedFirstPara = React.cloneElement(firstChild, { ...firstChild.props, children: firstParaChildren });
-                    
-                    const allContent = [modifiedFirstPara, ...significantChildren.slice(1)];
-                    return <Callout type={type} title={title}>{allContent}</Callout>;
-                }
+                    const firstParagraphNode = <p>{titleChildren}</p>;
 
-                // For DETAILS, first line is title, rest is content.
-                if (type === 'details') {
-                    const titleText = match[2].trim();
-                    const finalTitle = titleText || 'Details';
-                    const content = significantChildren.slice(1);
-                    return <Details title={finalTitle}>{content}</Details>;
+                    // If there was text on the title line, it becomes the title.
+                    // Otherwise, use the default title and the first paragraph becomes content.
+                    if (titleText) {
+                        return <Callout type={type} title={firstParagraphNode}>{contentNodes}</Callout>;
+                    } else {
+                        const defaultTitle = type.charAt(0).toUpperCase() + type.slice(1);
+                        return <Callout type={type} title={defaultTitle}>{[firstParagraphNode, ...contentNodes]}</Callout>;
+                    }
                 }
             }
 
+            // If no match, render a standard blockquote
             return <blockquote {...props}>{children}</blockquote>;
         },
     }
