@@ -64,6 +64,22 @@ const Details: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   );
 };
 
+// Helper to recursively get text content from React nodes
+function getReactNodeText(node: React.ReactNode): string {
+    if (typeof node === 'string') return node;
+    if (typeof node === 'number') return String(node);
+    // Fix: Reordered array check to prevent incorrect handling of array nodes.
+    if (Array.isArray(node)) return node.map(getReactNodeText).join('');
+    if (node === null || typeof node !== 'object' || !('props' in node)) return '';
+
+    // Fix: Cast `node.props` to safely access `children`. This resolves the error
+    // "Property 'children' does not exist on type 'unknown'".
+    const children = (node.props as { children?: React.ReactNode }).children;
+    if (children) {
+        return getReactNodeText(children);
+    }
+    return '';
+}
 
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     React.useEffect(() => {
@@ -79,25 +95,43 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
 
     const components = {
         blockquote: ({ node, children, ...props }: any) => {
-            const p = node.children[0];
-            if (p && p.tagName === 'p' && p.children && p.children[0] && p.children[0].type === 'text') {
-                const text = p.children[0].value;
-                const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\]\s*(.*)/.exec(text);
+            const allChildren = React.Children.toArray(children);
+            const firstChild = allChildren[0] as React.ReactElement;
+            
+            if (!firstChild || firstChild.type !== 'p') {
+                return <blockquote {...props}>{children}</blockquote>;
+            }
 
-                if (match) {
-                    const type = match[1].toLowerCase();
-                    const title = match[2] || (type.charAt(0).toUpperCase() + type.slice(1));
-                    const content = (children as React.ReactElement[]).slice(1);
+            const firstParagraphText = getReactNodeText(firstChild);
+            const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\](.*)/s.exec(firstParagraphText);
+            
+            if (match) {
+                const type = match[1].toLowerCase();
+                const textAfterTag = match[2].trim();
 
-                    if (type === 'details') {
-                        return <Details title={title}>{content}</Details>;
+                if (type === 'details') {
+                    const title = textAfterTag || 'Details';
+                    const content = allChildren.slice(1);
+                    return <Details title={title}>{content}</Details>;
+                }
+                
+                if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
+                    let title;
+                    let content;
+
+                    // If there are multiple paragraphs, the first line is the custom title.
+                    if (allChildren.length > 1) {
+                        title = textAfterTag || (type.charAt(0).toUpperCase() + type.slice(1));
+                        content = allChildren.slice(1);
+                    } else { // If only one paragraph, its text is the content.
+                        title = type.charAt(0).toUpperCase() + type.slice(1);
+                        content = textAfterTag ? [<p key="content">{textAfterTag}</p>] : [];
                     }
 
-                    if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
-                        return <Callout type={type as 'note' | 'tip' | 'warning' | 'caution'} title={title}>{content}</Callout>;
-                    }
+                    return <Callout type={type as any} title={title}>{content}</Callout>;
                 }
             }
+
             return <blockquote {...props}>{children}</blockquote>;
         },
     }
