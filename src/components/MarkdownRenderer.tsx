@@ -33,23 +33,16 @@ const calloutConfig = {
     }
 };
 
-const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; title: string; children: React.ReactNode }> = ({ type, title, children }) => {
+const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; children: React.ReactNode }> = ({ type, children }) => {
     const config = calloutConfig[type] || calloutConfig.note;
     const Icon = config.icon;
-    const hasContent = React.Children.count(children) > 0 && 
-                       (getReactNodeText(children).trim() !== '' || (Array.isArray(children) && children.some(c => (c as React.ReactElement)?.type === 'ul' || (c as React.ReactElement)?.type === 'ol')));
 
     return (
-        <div className={`my-4 p-4 rounded-lg ${config.bgColor}`}>
-            <div className="flex items-center space-x-2.5">
-                <Icon className={`w-5 h-5 flex-shrink-0 ${config.iconColor}`} />
-                <p className={`font-semibold ${config.titleColor}`}>{title}</p>
+        <div className={`my-4 px-4 py-3 rounded-lg flex items-start space-x-2.5 ${config.bgColor}`}>
+            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
+            <div className="flex-1 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0">
+                {children}
             </div>
-            {hasContent && (
-                 <div className="pl-8 pt-2 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-1">
-                    {children}
-                </div>
-            )}
         </div>
     );
 };
@@ -74,7 +67,8 @@ function getReactNodeText(node: React.ReactNode): string {
     if (typeof node === 'number') return String(node);
     if (Array.isArray(node)) return node.map(getReactNodeText).join('');
     if (node === null || typeof node !== 'object' || !('props' in node)) return '';
-    const children = (node.props as { children?: React.ReactNode }).children;
+    // Fix: Cast node to a type with props and children to satisfy TypeScript
+    const children = (node as { props: { children?: React.ReactNode } }).props.children;
     if (children) {
         return getReactNodeText(children);
     }
@@ -95,7 +89,8 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
 
     const components = {
         // Fix: Correctly type the props for the blockquote component to fix spread and property access errors.
-        blockquote: ({ node, children, ...props }: { node?: any; children?: React.ReactNode; [key: string]: any }) => {
+        blockquote: (componentProps: { node?: any; children?: React.ReactNode; [key: string]: any }) => {
+            const { node, children, ...props } = componentProps;
             const significantChildren = React.Children.toArray(children).filter(child => {
                  const text = getReactNodeText(child);
                  return text.trim() !== '';
@@ -120,16 +115,14 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                 const textAfterTag = rawTextAfterTag.trim();
                 
                 // Reconstruct the first paragraph without the tag, preserving leading spaces if any
-                // Fix: Use React.Children.toArray to safely iterate over children, which may not be an array, fixing the error on line 122.
                 const firstParaChildren = React.Children.toArray(firstChild.props.children).map((child: any, index: number) => {
                     if (index === 0 && typeof child === 'string') {
-                        return child.replace(/^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\]/, '');
+                        return child.replace(/^\s*\[!(?:NOTE|TIP|WARNING|CAUTION|DETAILS)\]\s*/, '');
                     }
                     return child;
                 });
 
                 const remainingChildren = [
-                    // Fix: Ensure firstChild.props is treated as an object, fixing the error on line 130.
                     React.cloneElement(firstChild, { ...firstChild.props, children: firstParaChildren }),
                     ...significantChildren.slice(1)
                 ];
@@ -143,33 +136,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                 }
                 
                 if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
-                    let title = textAfterTag;
-                    let content = cleanedContent;
-
-                    // If the text after tag is empty, it means the title is on the same line as the tag.
-                    // The first line of the actual content becomes the title.
-                    if (!title && cleanedContent.length > 0) {
-                        title = getReactNodeText(cleanedContent[0]).trim();
-                        content = cleanedContent.slice(1);
-                    } else if (title) {
-                        content = cleanedContent.map((child: any, index) => {
-                           if (index === 0) {
-                               const newChildren = React.Children.toArray(child.props.children).map((c: any, i: number) => {
-                                   if (i === 0 && typeof c === 'string') return c.replace(rawTextAfterTag, '');
-                                   return c;
-                               });
-                               return React.cloneElement(child, { ...child.props, children: newChildren });
-                           }
-                           return child;
-                        });
-                    }
-                    
-                    if (!title) {
-                        title = type.charAt(0).toUpperCase() + type.slice(1);
-                    }
-
-                    const finalContent = React.Children.toArray(content).filter(child => getReactNodeText(child).trim() !== '');
-                    return <Callout type={type as any} title={title}>{finalContent}</Callout>;
+                    return <Callout type={type as any}>{cleanedContent}</Callout>;
                 }
             }
 
