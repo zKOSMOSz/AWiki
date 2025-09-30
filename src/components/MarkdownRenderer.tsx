@@ -33,19 +33,40 @@ const calloutConfig = {
     }
 };
 
-const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; children: React.ReactNode }> = ({ type, children }) => {
+// Helper to recursively get text content from React nodes
+function getReactNodeText(node: React.ReactNode): string {
+    if (typeof node === 'string') return node;
+    if (typeof node === 'number') return String(node);
+    if (Array.isArray(node)) return node.map(getReactNodeText).join('');
+    if (node === null || typeof node !== 'object' || !('props' in node)) return '';
+    const children = (node as { props: { children?: React.ReactNode } }).props.children;
+    if (children) {
+        return getReactNodeText(children);
+    }
+    return '';
+}
+
+const Callout: React.FC<{ type: 'note' | 'tip' | 'warning' | 'caution'; title: string; children: React.ReactNode }> = ({ type, title, children }) => {
     const config = calloutConfig[type] || calloutConfig.note;
     const Icon = config.icon;
 
+    const hasContent = React.Children.toArray(children).some(child => getReactNodeText(child).trim() !== '');
+
     return (
-        <div className={`my-4 px-4 py-3 rounded-lg flex items-start space-x-2.5 ${config.bgColor}`}>
-            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
-            <div className="flex-1 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0">
-                {children}
+        <div className={`my-4 p-4 rounded-lg ${config.bgColor}`}>
+            <div className="flex items-center space-x-2.5">
+                <Icon className={`w-5 h-5 flex-shrink-0 ${config.iconColor}`} />
+                <span className={`font-semibold ${config.titleColor}`}>{title}</span>
             </div>
+            {hasContent && (
+               <div className="pl-[1.875rem] pt-2 prose prose-sm max-w-none text-gray-700 dark:text-gray-300 [&_p]:my-0">
+                    {children}
+                </div>
+            )}
         </div>
     );
 };
+
 
 const Details: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   return (
@@ -61,20 +82,6 @@ const Details: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   );
 };
 
-// Helper to recursively get text content from React nodes
-function getReactNodeText(node: React.ReactNode): string {
-    if (typeof node === 'string') return node;
-    if (typeof node === 'number') return String(node);
-    if (Array.isArray(node)) return node.map(getReactNodeText).join('');
-    if (node === null || typeof node !== 'object' || !('props' in node)) return '';
-    // Fix: Cast node to a type with props and children to satisfy TypeScript
-    const children = (node as { props: { children?: React.ReactNode } }).props.children;
-    if (children) {
-        return getReactNodeText(children);
-    }
-    return '';
-}
-
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     React.useEffect(() => {
         if (typeof Prism !== 'undefined') {
@@ -88,7 +95,6 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     }
 
     const components = {
-        // Fix: Correctly type the props for the blockquote component to fix spread and property access errors.
         blockquote: (componentProps: { node?: any; children?: React.ReactNode; [key: string]: any }) => {
             const { node, children, ...props } = componentProps;
             const significantChildren = React.Children.toArray(children).filter(child => {
@@ -100,43 +106,45 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
                 return <blockquote {...props}>{children}</blockquote>;
             }
 
-            const firstChild = significantChildren[0] as React.ReactElement;
+            // Fix: Use React.isValidElement as a type guard to ensure we have a valid element.
+            // This properly types `firstChild` and `firstChild.props` to avoid errors.
+            const firstChildNode = significantChildren[0];
             
-            if (!firstChild || typeof firstChild !== 'object' || !('type' in firstChild) || firstChild.type !== 'p') {
+            if (!React.isValidElement(firstChildNode) || firstChildNode.type !== 'p') {
                 return <blockquote {...props}>{children}</blockquote>;
             }
+
+            const firstChild = firstChildNode;
 
             const firstParagraphText = getReactNodeText(firstChild);
             const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\](.*)/s.exec(firstParagraphText);
             
             if (match) {
                 const type = match[1].toLowerCase();
-                const rawTextAfterTag = match[2];
-                const textAfterTag = rawTextAfterTag.trim();
                 
-                // Reconstruct the first paragraph without the tag, preserving leading spaces if any
-                const firstParaChildren = React.Children.toArray(firstChild.props.children).map((child: any, index: number) => {
-                    if (index === 0 && typeof child === 'string') {
-                        return child.replace(/^\s*\[!(?:NOTE|TIP|WARNING|CAUTION|DETAILS)\]\s*/, '');
-                    }
-                    return child;
-                });
-
-                const remainingChildren = [
-                    React.cloneElement(firstChild, { ...firstChild.props, children: firstParaChildren }),
-                    ...significantChildren.slice(1)
-                ];
-
-                const cleanedContent = React.Children.toArray(remainingChildren).filter(child => getReactNodeText(child).trim() !== '');
-
-                if (type === 'details') {
-                    const title = textAfterTag || 'Details';
-                    const content = cleanedContent.length > 0 && getReactNodeText(cleanedContent).trim() !== '' ? cleanedContent : [];
-                    return <Details title={title}>{content}</Details>;
-                }
-                
+                // For NOTE, TIP, etc., title is fixed, content is everything.
                 if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
-                    return <Callout type={type as any}>{cleanedContent}</Callout>;
+                    const title = type.charAt(0).toUpperCase() + type.slice(1);
+                    
+                    // Strip the tag from the first paragraph
+                    const firstParaChildren = React.Children.toArray(firstChild.props.children).map((child: any, index: number) => {
+                        if (index === 0 && typeof child === 'string') {
+                            return child.replace(/^\s*\[!(?:NOTE|TIP|WARNING|CAUTION)\]\s*/, '');
+                        }
+                        return child;
+                    });
+                    const modifiedFirstPara = React.cloneElement(firstChild, { ...firstChild.props, children: firstParaChildren });
+                    
+                    const allContent = [modifiedFirstPara, ...significantChildren.slice(1)];
+                    return <Callout type={type} title={title}>{allContent}</Callout>;
+                }
+
+                // For DETAILS, first line is title, rest is content.
+                if (type === 'details') {
+                    const titleText = match[2].trim();
+                    const finalTitle = titleText || 'Details';
+                    const content = significantChildren.slice(1);
+                    return <Details title={finalTitle}>{content}</Details>;
                 }
             }
 
