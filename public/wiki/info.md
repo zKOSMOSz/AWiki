@@ -21,20 +21,23 @@ This wiki supports custom markdown components to enhance your content.
 
 > This is a standard blockquote. It has a vertical line to the left, perfect for quoting text.
 
-> [!NOTE]
-> This is a note. It's useful for providing additional information that isn't critical.
+> [!NOTE] This is a note. It's useful for providing additional information that isn't critical.
 
 > [!TIP] It can also have a custom title
 > This is a tip. Use it to give helpful advice to your readers.
 
-> [!WARNING]
-> This is a warning. It's important and should be read carefully.
+> [!WARNING] This is a warning. It's important and should be read carefully.
 
-> [!CAUTION]
-> This is a caution block. It indicates a potential for data loss or other negative outcomes.
+> [!CAUTION] This is a caution block. It indicates a potential for data loss or other negative outcomes.
 
 > [!DETAILS] Click to see more details
 > You can hide content inside a collapsible section.
 >
 > - It can contain lists
 > - And other **markdown** elements.
+
+> [!DETAILS] Another collapsible section
+> This is the content of the second details block. You can put any markdown content here.
+
+> [!DETAILS] And a third one
+> You can have as many as you need, and they will stack nicely.
