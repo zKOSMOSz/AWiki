@@ -14,3 +14,27 @@ This is a static wiki built with React and TypeScript. You can easily create you
 -   `wiki/`: A directory containing all the wiki content as Markdown (`.md`) files.
 -   `components/`: Contains all the reusable React components, such as the sidebar, markdown renderer, and icons.
 -   `types.ts`: Defines the TypeScript types used throughout the application, like `WikiPage` and `WikiSection`.
+
+## Custom Components
+
+This wiki supports custom markdown components to enhance your content.
+
+> This is a standard blockquote. It has a vertical line to the left, perfect for quoting text.
+
+> [!NOTE]
+> This is a note. It's useful for providing additional information that isn't critical.
+
+> [!TIP] It can also have a custom title
+> This is a tip. Use it to give helpful advice to your readers.
+
+> [!WARNING]
+> This is a warning. It's important and should be read carefully.
+
+> [!CAUTION]
+> This is a caution block. It indicates a potential for data loss or other negative outcomes.
+
+> [!DETAILS] Click to see more details
+> You can hide content inside a collapsible section.
+>
+> - It can contain lists
+> - And other **markdown** elements.

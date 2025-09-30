@@ -1,3 +1,39 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  .prose {
+    @apply text-gray-600 dark:text-gray-300;
+  }
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    @apply text-zinc-900 dark:text-white;
+  }
+  .prose h1 { @apply text-3xl font-bold mt-12 mb-4 border-b border-gray-200 dark:border-zinc-800 pb-2; }
+  .prose h2 { @apply text-2xl font-bold mt-10 mb-4 border-b border-gray-200 dark:border-zinc-800 pb-2; }
+  .prose h3 { @apply text-xl font-semibold mt-8 mb-3; }
+  .prose h4 { @apply text-lg font-semibold mt-6 mb-2; }
+  .prose h5 { @apply text-base font-semibold mt-5 mb-1; }
+  .prose h6 { @apply text-sm font-semibold mt-4 mb-1; }
+
+  .prose p { @apply my-4 leading-relaxed; }
+  .prose a { @apply text-blue-500 dark:text-blue-400 hover:underline; }
+  .prose a > code { @apply text-blue-500 dark:text-blue-400; }
+  .prose ul { @apply list-disc list-inside my-4 pl-4 space-y-2; }
+  .prose ol { @apply list-decimal list-inside my-4 pl-4 space-y-2; }
+  /* Fix for react-markdown adding <p> inside <li> */
+  .prose li > p:first-child { @apply inline-block; } 
+
+  .prose blockquote { @apply my-4 pl-4 border-l-4 border-gray-300 dark:border-zinc-700; }
+  .prose code:not(pre > code) { @apply bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded px-1.5 py-px text-sm font-mono text-red-500 dark:text-red-400; }
+  .prose pre { @apply bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 p-4 rounded-lg overflow-x-auto my-4; }
+  .prose pre code { @apply bg-transparent border-none p-0 text-sm; }
+  
+  .prose table { @apply my-6 w-full border-collapse border border-gray-200 dark:border-zinc-800; }
+  .prose th, .prose td { @apply border border-gray-200 dark:border-zinc-800 px-4 py-2 text-left; }
+  .prose thead { @apply bg-gray-50 dark:bg-zinc-800/50; }
+  .prose tr:nth-child(2n) { @apply bg-gray-50/50 dark:bg-zinc-800/20; }
+  
+  .prose img { @apply my-6 rounded-lg shadow-md max-w-full; }
+  .prose hr { @apply my-8 border-gray-200 dark:border-zinc-800; }
+}
