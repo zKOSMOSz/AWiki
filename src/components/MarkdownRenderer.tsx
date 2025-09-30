@@ -68,12 +68,8 @@ const Details: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 function getReactNodeText(node: React.ReactNode): string {
     if (typeof node === 'string') return node;
     if (typeof node === 'number') return String(node);
-    // Fix: Reordered array check to prevent incorrect handling of array nodes.
     if (Array.isArray(node)) return node.map(getReactNodeText).join('');
     if (node === null || typeof node !== 'object' || !('props' in node)) return '';
-
-    // Fix: Cast `node.props` to safely access `children`. This resolves the error
-    // "Property 'children' does not exist on type 'unknown'".
     const children = (node.props as { children?: React.ReactNode }).children;
     if (children) {
         return getReactNodeText(children);
@@ -95,34 +91,43 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
 
     const components = {
         blockquote: ({ node, children, ...props }: any) => {
-            const allChildren = React.Children.toArray(children);
-            const firstChild = allChildren[0] as React.ReactElement;
+            // Filter out empty newlines between paragraphs, which React-Markdown adds.
+            const significantChildren = React.Children.toArray(children).filter(child => {
+                return typeof child !== 'string' || child.trim() !== '';
+            });
+
+            if (significantChildren.length === 0) {
+                return <blockquote {...props}>{children}</blockquote>;
+            }
+
+            const firstChild = significantChildren[0] as React.ReactElement;
             
-            if (!firstChild || firstChild.type !== 'p') {
+            if (!firstChild || typeof firstChild !== 'object' || !('type' in firstChild) || firstChild.type !== 'p') {
                 return <blockquote {...props}>{children}</blockquote>;
             }
 
             const firstParagraphText = getReactNodeText(firstChild);
+            // The 's' flag allows '.' to match newlines, crucial for multiline content within the first <p>.
             const match = /^\s*\[!(NOTE|TIP|WARNING|CAUTION|DETAILS)\](.*)/s.exec(firstParagraphText);
             
             if (match) {
                 const type = match[1].toLowerCase();
                 const textAfterTag = match[2].trim();
+                const remainingChildren = significantChildren.slice(1);
 
                 if (type === 'details') {
                     const title = textAfterTag || 'Details';
-                    const content = allChildren.slice(1);
-                    return <Details title={title}>{content}</Details>;
+                    return <Details title={title}>{remainingChildren}</Details>;
                 }
                 
                 if (type === 'note' || type === 'tip' || type === 'warning' || type === 'caution') {
                     let title;
                     let content;
 
-                    // If there are multiple paragraphs, the first line is the custom title.
-                    if (allChildren.length > 1) {
+                    // If there are more paragraphs, the first line is the custom title.
+                    if (remainingChildren.length > 0) {
                         title = textAfterTag || (type.charAt(0).toUpperCase() + type.slice(1));
-                        content = allChildren.slice(1);
+                        content = remainingChildren;
                     } else { // If only one paragraph, its text is the content.
                         title = type.charAt(0).toUpperCase() + type.slice(1);
                         content = textAfterTag ? [<p key="content">{textAfterTag}</p>] : [];
